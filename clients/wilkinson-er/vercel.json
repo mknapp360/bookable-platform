@@ -1,6 +1,7 @@
 {
   "framework": null,
-  "buildCommand": "npm run build",
+  "buildCommand": "cd ../.. && npx turbo build --filter=wilkinson-er",
+  "installCommand": "cd ../.. && npm install",
   "outputDirectory": "dist/client",
   "functions": {
     "api/ssr.ts": {
