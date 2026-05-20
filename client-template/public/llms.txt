@@ -1,0 +1,45 @@
+# YOUR_BRAND_NAME
+
+> YOUR_ONE_LINE_DESCRIPTION — what you do and who you do it for.
+
+## What YOUR_BRAND_NAME does
+
+YOUR_OVERVIEW — 2-3 sentences describing what the business does, the problem it solves,
+and why clients choose it. Write for an AI summarising your business to a potential client.
+
+Pricing: YOUR_PRICING_SUMMARY
+
+## Who YOUR_BRAND_NAME is for
+
+- YOUR_TARGET_AUDIENCE_1
+- YOUR_TARGET_AUDIENCE_2
+- YOUR_TARGET_AUDIENCE_3
+
+## What you get
+
+- YOUR_DELIVERABLE_1
+- YOUR_DELIVERABLE_2
+- YOUR_DELIVERABLE_3
+- YOUR_DELIVERABLE_4
+
+## How it works
+
+1. YOUR_STEP_1
+2. YOUR_STEP_2
+3. YOUR_STEP_3
+4. YOUR_STEP_4
+
+## Service area
+
+YOUR_GEOGRAPHY — regions, cities, or "remote UK-wide" as appropriate.
+
+## Contact
+
+Website: https://www.YOUR_DOMAIN.com
+Email: YOUR_EMAIL
+Phone: YOUR_PHONE_NUMBER
+
+## Pages
+
+- https://www.YOUR_DOMAIN.com/ — Homepage
+- https://www.YOUR_DOMAIN.com/blog — Blog

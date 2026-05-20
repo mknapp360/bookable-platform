@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- This file is auto-generated at build time by scripts/generate-sitemap.mjs -->
+<!-- Run `npm run build` or `node scripts/generate-sitemap.mjs` to regenerate -->
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+  <url>
+    <loc>https://www.YOUR_DOMAIN.com/</loc>
+    <lastmod>2026-01-01</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>1.0</priority>
+  </url>
+</urlset>
