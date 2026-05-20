@@ -53,8 +53,16 @@ export default function AdminApp() {
   }, [])
 
   return (
-    <MemoryRouter>
-      <CrmApp />
-    </MemoryRouter>
+    <div onClick={(e) => {
+      // Prevent Vike's client-side router from intercepting CRM link clicks
+      const anchor = (e.target as HTMLElement).closest('a')
+      if (anchor && anchor.getAttribute('href')?.startsWith('/')) {
+        e.stopPropagation()
+      }
+    }}>
+      <MemoryRouter>
+        <CrmApp />
+      </MemoryRouter>
+    </div>
   )
 }
