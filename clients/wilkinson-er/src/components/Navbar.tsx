@@ -35,7 +35,7 @@ export default function Navbar() {
                 clearTimeout(clickTimeout.current)
                 clickTimeout.current = null
               }
-              window.location.href = '/?admin'
+              window.location.href = '/admin'
             }}
           >
             <img
