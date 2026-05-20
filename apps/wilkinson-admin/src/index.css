@@ -1,0 +1,6 @@
+@import "tailwindcss";
+
+/* Tell Tailwind v4 to scan crm-core source files for utility classes.
+   The Vite plugin auto-detects files inside the app root but not across
+   the monorepo boundary, so we explicitly source the shared package. */
+@source "../../../bookable-crm/src";

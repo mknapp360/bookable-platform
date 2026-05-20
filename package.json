@@ -1,0 +1,22 @@
+{
+  "name": "bookable",
+  "private": true,
+  "version": "0.0.0",
+  "workspaces": [
+    "packages/*",
+    "clients/*",
+    "apps/*"
+  ],
+  "scripts": {
+    "dev:crm":         "npm run dev --workspace=@bookable/crm-core",
+    "dev:wilkinson":   "turbo dev --filter=wilkinson-er",
+    "dev:admin":       "npm run dev --workspace=wilkinson-admin",
+    "build":           "turbo build",
+    "build:crm":       "npm run build --workspace=@bookable/crm-core",
+    "build:wilkinson": "turbo build --filter=wilkinson-er"
+  },
+  "packageManager": "npm@11.6.2",
+  "devDependencies": {
+    "turbo": "^2.5.4"
+  }
+}
