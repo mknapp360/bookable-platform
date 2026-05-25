@@ -1,30 +1,37 @@
 import { useState, type FormEvent } from 'react'
-import { useNavigate, Link } from 'react-router-dom'
+import { useNavigate } from 'react-router-dom'
 import { useAuth } from '@/hooks/useAuth'
-import { TurnstileWidget } from '@/components/crm/TurnstileWidget'
 
-export function LoginPage() {
-  const { signIn } = useAuth()
+export function ResetPasswordPage() {
+  const { updatePassword } = useAuth()
   const navigate = useNavigate()
-  const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
+  const [confirm, setConfirm] = useState('')
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
-  const [captchaToken, setCaptchaToken] = useState<string | undefined>(
-    import.meta.env.VITE_TURNSTILE_SITE_KEY ? undefined : 'no-captcha'
-  )
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault()
     setError(null)
+
+    if (password !== confirm) {
+      setError('Passwords do not match.')
+      return
+    }
+
+    if (password.length < 8) {
+      setError('Password must be at least 8 characters.')
+      return
+    }
+
     setLoading(true)
-    const token = import.meta.env.VITE_TURNSTILE_SITE_KEY ? captchaToken : undefined
-    const { error } = await signIn(email, password, token)
+    const { error } = await updatePassword(password)
     setLoading(false)
+
     if (error) {
-      setError('Invalid email or password.')
+      setError(error.message ?? 'Something went wrong. Please try again.')
     } else {
-      navigate('/dashboard')
+      navigate('/dashboard', { replace: true })
     }
   }
 
@@ -33,7 +40,7 @@ export function LoginPage() {
       <div className="w-full max-w-sm">
         <div className="text-center mb-8">
           <img src="/crmLogo.png" alt="Bookable CRM" className="h-12 w-auto mx-auto mb-4" />
-          <p className="text-slate-500 text-sm">Sign in to your account</p>
+          <p className="text-slate-500 text-sm">Set a new password</p>
         </div>
 
         <form onSubmit={handleSubmit} className="bg-white rounded-xl shadow-sm border border-slate-200 p-6 space-y-4">
@@ -44,52 +51,39 @@ export function LoginPage() {
           )}
 
           <div>
-            <label className="block text-sm font-medium text-slate-700 mb-1.5">Email</label>
+            <label className="block text-sm font-medium text-slate-700 mb-1.5">New password</label>
             <input
-              type="email"
+              type="password"
               required
-              value={email}
-              onChange={e => setEmail(e.target.value)}
+              minLength={8}
+              value={password}
+              onChange={e => setPassword(e.target.value)}
               className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              placeholder="you@example.com"
+              placeholder="At least 8 characters"
             />
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-slate-700 mb-1.5">Password</label>
+            <label className="block text-sm font-medium text-slate-700 mb-1.5">Confirm password</label>
             <input
               type="password"
               required
-              value={password}
-              onChange={e => setPassword(e.target.value)}
+              minLength={8}
+              value={confirm}
+              onChange={e => setConfirm(e.target.value)}
               className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              placeholder="••••••••"
+              placeholder="Repeat your password"
             />
           </div>
 
-          <TurnstileWidget onToken={setCaptchaToken} />
-
           <button
             type="submit"
-            disabled={loading || !captchaToken}
+            disabled={loading}
             className="w-full bg-[#29ab00] hover:bg-[#218f00] disabled:opacity-50 text-white font-medium py-2.5 rounded-lg text-sm transition-colors"
           >
-            {loading ? 'Signing in...' : 'Sign in'}
+            {loading ? 'Updating...' : 'Update password'}
           </button>
-
-          <p className="text-center">
-            <Link to="/forgot-password" className="text-sm text-slate-400 hover:text-slate-600">
-              Forgot your password?
-            </Link>
-          </p>
         </form>
-
-        <p className="text-center text-sm text-slate-500 mt-4">
-          Don't have an account?{' '}
-          <Link to="/signup" className="text-[#29ab00] hover:text-[#218f00] font-medium">
-            Get started free
-          </Link>
-        </p>
       </div>
     </div>
   )

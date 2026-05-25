@@ -1,8 +1,9 @@
-import { useState } from 'react'
-import { useParams, useNavigate } from 'react-router-dom'
+import { useState, useEffect } from 'react'
+import { useParams, useNavigate, Link } from 'react-router-dom'
 import {
   ArrowLeft, Mail, Pencil,
-  Tag, ClipboardList, MessageSquare, Save,
+  Tag, ClipboardList, MessageSquare, Save, Trash2,
+  Sparkles, Send, Loader2, CheckCircle2, Settings,
 } from 'lucide-react'
 import { useTenant } from '@/hooks/useTenant'
 import { useEnquiries } from '@/hooks/useEnquiries'
@@ -71,6 +72,181 @@ function MeetingNotesTab({
   )
 }
 
+// ─── AI Draft Section ────────────────────────────────────────────────────────
+function AiDraftSection({
+  enquiryId,
+  enquiryEmail,
+  enquiryName,
+  tenantId,
+  initialDraft,
+  initialStatus,
+  hasBusinessProfile,
+}: {
+  enquiryId: string
+  enquiryEmail: string
+  enquiryName: string
+  tenantId: string
+  initialDraft: string | null | undefined
+  initialStatus: 'none' | 'generating' | 'ready' | 'sent' | undefined
+  hasBusinessProfile: boolean
+}) {
+  const [draft, setDraft]     = useState(initialDraft ?? '')
+  const [status, setStatus]   = useState(initialStatus ?? 'none')
+  const [sending, setSending] = useState(false)
+  const [sent, setSent]       = useState(false)
+
+  // Sync from props if they change (e.g. refetch)
+  useEffect(() => {
+    setDraft(initialDraft ?? '')
+    setStatus(initialStatus ?? 'none')
+  }, [initialDraft, initialStatus])
+
+  // Realtime subscription for draft status changes
+  useEffect(() => {
+    const channel = supabase
+      .channel(`enquiry-draft-${enquiryId}`)
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'enquiries',
+          filter: `id=eq.${enquiryId}`,
+        },
+        (payload) => {
+          const row = payload.new as { ai_draft?: string; ai_draft_status?: string }
+          if (row.ai_draft_status) setStatus(row.ai_draft_status as typeof status)
+          if (row.ai_draft !== undefined) setDraft(row.ai_draft ?? '')
+        }
+      )
+      .subscribe()
+
+    return () => { supabase.removeChannel(channel) }
+  }, [enquiryId])
+
+  async function handleSend() {
+    if (!draft.trim()) return
+    setSending(true)
+    try {
+      const { data: session } = await supabase.auth.getSession()
+      const token = session?.session?.access_token
+      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL as string
+
+      const res = await fetch(`${supabaseUrl}/functions/v1/send-email`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          tenant_id: tenantId,
+          contact_id: null,
+          to_email: enquiryEmail,
+          to_name: enquiryName,
+          subject: `Re: Your enquiry`,
+          body: draft,
+        }),
+      })
+
+      if (res.ok) {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        await (supabase as any)
+          .from('enquiries')
+          .update({ ai_draft_status: 'sent' })
+          .eq('id', enquiryId)
+        setStatus('sent')
+        setSent(true)
+      }
+    } catch (err) {
+      console.error('Failed to send draft:', err)
+    } finally {
+      setSending(false)
+    }
+  }
+
+  // No profile — nudge to settings
+  if (status === 'none' && !hasBusinessProfile) {
+    return (
+      <div className="bg-slate-50 rounded-xl border border-slate-200 p-5">
+        <div className="flex items-center gap-2 text-sm text-slate-500">
+          <Settings size={14} className="shrink-0" />
+          <span>
+            Add a business profile in{' '}
+            <Link to="/settings?tab=account" className="text-blue-600 hover:underline font-medium">
+              Settings
+            </Link>{' '}
+            to enable AI-drafted replies.
+          </span>
+        </div>
+      </div>
+    )
+  }
+
+  // Profile exists but no draft yet (pre-existing enquiry)
+  if (status === 'none') return null
+
+  // Generating
+  if (status === 'generating') {
+    return (
+      <div className="bg-blue-50 rounded-xl border border-blue-100 p-5">
+        <div className="flex items-center gap-2 text-sm text-blue-600">
+          <Loader2 size={14} className="animate-spin shrink-0" />
+          <span>Drafting reply…</span>
+        </div>
+      </div>
+    )
+  }
+
+  // Sent
+  if (status === 'sent') {
+    return (
+      <div className="bg-white rounded-xl border border-slate-200 p-5">
+        <div className="flex items-center gap-2 mb-3">
+          <CheckCircle2 size={14} className="text-green-500 shrink-0" />
+          <h3 className="text-xs font-semibold text-slate-400 uppercase tracking-wide">Draft sent</h3>
+        </div>
+        <p className="text-sm text-slate-500 whitespace-pre-wrap leading-relaxed">{draft}</p>
+      </div>
+    )
+  }
+
+  // Ready — editable
+  return (
+    <div className="bg-white rounded-xl border border-slate-200 p-5">
+      <div className="flex items-center gap-2 mb-3">
+        <Sparkles size={14} className="text-amber-500 shrink-0" />
+        <h3 className="text-xs font-semibold text-slate-500 uppercase tracking-wide">AI Draft Reply</h3>
+      </div>
+      <textarea
+        value={draft}
+        onChange={e => setDraft(e.target.value)}
+        rows={6}
+        className="w-full border border-slate-200 rounded-lg px-4 py-3 text-sm text-slate-800 leading-relaxed resize-none focus:outline-none focus:ring-2 focus:ring-blue-500 mb-3"
+      />
+      <div className="flex items-center justify-end gap-2">
+        <button
+          onClick={handleSend}
+          disabled={sending || !draft.trim()}
+          className={cn(
+            'flex items-center gap-1.5 px-4 py-1.5 text-sm font-medium rounded-lg transition-colors',
+            sent
+              ? 'bg-green-600 text-white'
+              : 'bg-blue-600 hover:bg-blue-700 text-white disabled:opacity-50'
+          )}
+        >
+          {sending ? (
+            <><Loader2 size={13} className="animate-spin" /> Sending…</>
+          ) : sent ? (
+            <><CheckCircle2 size={13} /> Sent</>
+          ) : (
+            <><Send size={13} /> Send</>
+          )}
+        </button>
+      </div>
+    </div>
+  )
+}
+
 // ─── Page ─────────────────────────────────────────────────────────────────────
 export function EnquiryDetailPage() {
   const { id } = useParams<{ id: string }>()
@@ -78,7 +254,7 @@ export function EnquiryDetailPage() {
   const { tenant } = useTenant()
   const tenantId = tenant?.id ?? null
 
-  const { enquiries, loading, updateEnquiry, updatePipelineStage } = useEnquiries(tenantId)
+  const { enquiries, loading, updateEnquiry, updatePipelineStage, deleteEnquiry } = useEnquiries(tenantId)
   const { addContact } = useContacts(tenantId)
   const { stages } = usePipelineStages(tenantId)
 
@@ -90,6 +266,7 @@ export function EnquiryDetailPage() {
   const [editingStage, setEditingStage]     = useState(false)
   const [editingStatus, setEditingStatus]   = useState(false)
   const [stageSaving, setStageSaving]       = useState(false)
+  const [deleteConfirm, setDeleteConfirm]   = useState(false)
 
   async function handleStageChange(stageId: string) {
     if (!enquiry || !tenantId || !id) return
@@ -163,7 +340,13 @@ export function EnquiryDetailPage() {
     )
   }
 
+  const settings = (tenant?.settings ?? {}) as Record<string, unknown>
+  const businessProfile = settings.business_profile as { description?: string } | undefined
+  const hasBusinessProfile = !!(businessProfile && businessProfile.description)
+
   const currentStage  = enquiry.pipeline_stage
+  const firstStage    = stages.length > 0 ? stages[0] : null
+  const isFirstStage  = firstStage && enquiry.pipeline_stage_id === firstStage.id
   const statusOptions: EnquiryStatus[] = ['new', 'contacted', 'converted', 'dismissed']
 
   // Split enquiry name into first/last for avatar
@@ -280,7 +463,48 @@ export function EnquiryDetailPage() {
                 </button>
               )}
             </div>
+
+            {/* Delete — only for enquiries in the first pipeline stage */}
+            {isFirstStage && (
+              <div className="flex justify-end mt-5 pt-5 border-t border-slate-100">
+                {deleteConfirm ? (
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs text-red-600">Delete this enquiry?</span>
+                    <button
+                      onClick={async () => {
+                        await deleteEnquiry(id!)
+                        navigate('/pipeline')
+                      }}
+                      className="text-xs font-medium text-red-600 hover:text-red-700"
+                    >Yes</button>
+                    <span className="text-slate-300">/</span>
+                    <button
+                      onClick={() => setDeleteConfirm(false)}
+                      className="text-xs font-medium text-slate-500 hover:text-slate-700"
+                    >No</button>
+                  </div>
+                ) : (
+                  <button
+                    onClick={() => setDeleteConfirm(true)}
+                    className="flex items-center gap-1.5 text-xs text-red-500 hover:text-red-600 transition-colors"
+                  >
+                    <Trash2 size={13} /> Delete
+                  </button>
+                )}
+              </div>
+            )}
           </div>
+
+          {/* AI Draft */}
+          <AiDraftSection
+            enquiryId={id!}
+            enquiryEmail={enquiry.email}
+            enquiryName={enquiry.name}
+            tenantId={tenantId!}
+            initialDraft={enquiry.ai_draft}
+            initialStatus={enquiry.ai_draft_status}
+            hasBusinessProfile={hasBusinessProfile}
+          />
 
           {/* Tabbed notes card */}
           <div className="bg-white rounded-xl border border-slate-200">

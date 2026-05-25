@@ -12,8 +12,8 @@ export default function ContactForm() {
 
     try {
       const { error } = await supabase.from('enquiries').insert({
-        tenant_id: 'aaaaaaaa-0001-0001-0001-aaaaaaaaaaaa',
-        pipeline_stage_id: '7c1abd72-f259-4ed1-9ffc-0d475dbbda34',
+        tenant_id: '51ed5edf-0482-4558-934e-3a73617d56f1',
+        pipeline_stage_id: '38e0ea9f-8832-4136-b8f5-bdb03ede7004',
         name: form.name,
         email: form.email,
         message: form.message,

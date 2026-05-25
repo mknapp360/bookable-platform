@@ -6,6 +6,7 @@ import { usePipelineStages } from '@/hooks/usePipelineStages'
 import { useCalendarEvents } from '@/hooks/useCalendarEvents'
 import { supabase } from '@/lib/supabase'
 import { cn } from '@/lib/cn'
+import { SetPasswordModal } from '@/components/crm/SetPasswordModal'
 import type { Activity, Case, Contact } from '@/types'
 
 // ─── Types ───────────────────────────────────────────────────────────────────
@@ -56,6 +57,14 @@ export function DashboardPage() {
   const { tenant } = useTenant()
   const tenantId  = tenant?.id ?? null
   const { stages } = usePipelineStages(tenantId)
+
+  const [showPasswordModal, setShowPasswordModal] = useState(() => {
+    if (typeof window !== 'undefined' && sessionStorage.getItem('password_recovery')) {
+      sessionStorage.removeItem('password_recovery')
+      return true
+    }
+    return false
+  })
 
   const [stats, setStats]       = useState<Stats | null>(null)
   const [statsLoading, setStatsLoading] = useState(true)
@@ -167,6 +176,9 @@ export function DashboardPage() {
 
   return (
     <div className="p-8 max-w-6xl">
+      {showPasswordModal && (
+        <SetPasswordModal onComplete={() => setShowPasswordModal(false)} />
+      )}
       {/* Header */}
       <h1 className="text-2xl font-bold text-slate-900 mb-1">{greeting}, {tenant?.branding?.companyName ?? tenant?.name ?? 'there'}</h1>
       <p className="text-slate-500 text-sm mb-6">{tenant?.name ?? 'Loading…'}</p>

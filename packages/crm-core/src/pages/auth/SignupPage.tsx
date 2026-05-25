@@ -1,6 +1,7 @@
 import { useState, type FormEvent } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
 import { useAuth } from '@/hooks/useAuth'
+import { TurnstileWidget } from '@/components/crm/TurnstileWidget'
 
 export function SignupPage() {
   const { signUp } = useAuth()
@@ -12,16 +13,20 @@ export function SignupPage() {
   const [password, setPassword]         = useState('')
   const [error, setError]               = useState<string | null>(null)
   const [loading, setLoading]           = useState(false)
+  const [captchaToken, setCaptchaToken] = useState<string | undefined>(
+    import.meta.env.VITE_TURNSTILE_SITE_KEY ? undefined : 'no-captcha'
+  )
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault()
     setError(null)
     setLoading(true)
 
+    const token = import.meta.env.VITE_TURNSTILE_SITE_KEY ? captchaToken : undefined
     const { error } = await signUp(email, password, {
       full_name: fullName,
       business_name: businessName,
-    })
+    }, token)
 
     setLoading(false)
 
@@ -101,12 +106,14 @@ export function SignupPage() {
             />
           </div>
 
+          <TurnstileWidget onToken={setCaptchaToken} />
+
           <button
             type="submit"
-            disabled={loading}
+            disabled={loading || !captchaToken}
             className="w-full bg-[#29ab00] hover:bg-[#218f00] disabled:opacity-50 text-white font-medium py-2.5 rounded-lg text-sm transition-colors"
           >
-            {loading ? 'Setting up your account…' : 'Get started free'}
+            {loading ? 'Setting up your account...' : 'Get started free'}
           </button>
 
           <p className="text-center text-xs text-slate-400">

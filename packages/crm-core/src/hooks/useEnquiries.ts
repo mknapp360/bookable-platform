@@ -48,5 +48,13 @@ export function useEnquiries(tenantId: string | null) {
     return { error: null }
   }
 
-  return { enquiries, loading, error, refetch: fetch, updateEnquiry, updatePipelineStage }
+  async function deleteEnquiry(id: string): Promise<{ error: string | null }> {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { error } = await (supabase as any).from('enquiries').delete().eq('id', id)
+    if (error) return { error: error.message }
+    await fetch()
+    return { error: null }
+  }
+
+  return { enquiries, loading, error, refetch: fetch, updateEnquiry, updatePipelineStage, deleteEnquiry }
 }

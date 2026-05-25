@@ -6,9 +6,11 @@ export interface AuthContextValue {
   user: User | null
   session: Session | null
   loading: boolean
-  signIn: (email: string, password: string) => Promise<{ error: Error | null }>
-  signUp: (email: string, password: string, meta: { full_name: string; business_name: string }) => Promise<{ error: Error | null }>
+  signIn: (email: string, password: string, captchaToken?: string) => Promise<{ error: Error | null }>
+  signUp: (email: string, password: string, meta: { full_name: string; business_name: string }, captchaToken?: string) => Promise<{ error: Error | null }>
   signOut: () => Promise<void>
+  resetPassword: (email: string, captchaToken?: string) => Promise<{ error: Error | null }>
+  updatePassword: (password: string) => Promise<{ error: Error | null }>
 }
 
 export const AuthContext = createContext<AuthContextValue | null>(null)
@@ -33,20 +35,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return () => subscription.unsubscribe()
   }, [])
 
-  async function signIn(email: string, password: string) {
-    const { error } = await supabase.auth.signInWithPassword({ email, password })
+  async function signIn(email: string, password: string, captchaToken?: string) {
+    const { error } = await supabase.auth.signInWithPassword({ email, password, options: { captchaToken } })
     return { error }
   }
 
   async function signUp(
     email: string,
     password: string,
-    meta: { full_name: string; business_name: string }
+    meta: { full_name: string; business_name: string },
+    captchaToken?: string,
   ) {
     const { error } = await supabase.auth.signUp({
       email,
       password,
-      options: { data: meta },
+      options: { data: meta, captchaToken },
     })
     return { error }
   }
@@ -55,8 +58,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     await supabase.auth.signOut()
   }
 
+  async function resetPassword(email: string, captchaToken?: string) {
+    const siteUrl = import.meta.env.VITE_SITE_URL || window.location.origin
+    const { error } = await supabase.auth.resetPasswordForEmail(email, {
+      redirectTo: `${siteUrl}/auth/callback`,
+      captchaToken,
+    })
+    return { error }
+  }
+
+  async function updatePassword(password: string) {
+    const { error } = await supabase.auth.updateUser({ password })
+    return { error }
+  }
+
   return (
-    <AuthContext.Provider value={{ user, session, loading, signIn, signUp, signOut }}>
+    <AuthContext.Provider value={{ user, session, loading, signIn, signUp, signOut, resetPassword, updatePassword }}>
       {children}
     </AuthContext.Provider>
   )

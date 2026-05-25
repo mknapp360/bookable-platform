@@ -145,11 +145,14 @@ export interface Enquiry {
   tenant_id: string | null
   name: string
   email: string
+  phone?: string | null
   message: string
   source: string
   status: EnquiryStatus
   notes: string | null
   pipeline_stage_id: string | null
+  ai_draft?: string | null
+  ai_draft_status?: 'none' | 'generating' | 'ready' | 'sent'
   created_at: string
   // joined
   pipeline_stage?: PipelineStage

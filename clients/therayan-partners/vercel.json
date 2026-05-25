@@ -1,5 +1,7 @@
 {
-  "buildCommand": "npm run build",
+  "framework": null,
+  "buildCommand": "cd ../.. && npx turbo build --filter=therayan-partners",
+  "installCommand": "cd ../.. && npm install",
   "outputDirectory": "dist/client",
   "functions": {
     "api/ssr.ts": {

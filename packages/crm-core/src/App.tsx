@@ -7,6 +7,8 @@ import { AdminLayout } from '@/components/layout/AdminLayout'
 import { LoginPage } from '@/pages/auth/LoginPage'
 import { SignupPage } from '@/pages/auth/SignupPage'
 import { AuthCallback } from '@/pages/auth/AuthCallback'
+import { ForgotPasswordPage } from '@/pages/auth/ForgotPasswordPage'
+import { ResetPasswordPage } from '@/pages/auth/ResetPasswordPage'
 import { DashboardPage } from '@/pages/admin/dashboard/DashboardPage'
 import { ContactsPage } from '@/pages/admin/contacts/ContactsPage'
 import { ContactDetailPage } from '@/pages/admin/contacts/ContactDetailPage'
@@ -52,9 +54,11 @@ export function createCrmApp(config: Partial<CrmConfig> = {}) {
         <TenantProvider>
           <CrmConfigProvider config={config}>
             <Routes>
-              <Route path="/login"         element={<LoginPage />} />
-              <Route path="/signup"        element={<SignupPage />} />
-              <Route path="/auth/callback" element={<AuthCallback />} />
+              <Route path="/login"            element={<LoginPage />} />
+              <Route path="/signup"           element={<SignupPage />} />
+              <Route path="/forgot-password"  element={<ForgotPasswordPage />} />
+              <Route path="/reset-password"   element={<ResetPasswordPage />} />
+              <Route path="/auth/callback"    element={<AuthCallback />} />
 
               <Route path="/" element={<RequireAuth><AdminLayout /></RequireAuth>}>
                 <Route index element={<Navigate to="/dashboard" replace />} />
