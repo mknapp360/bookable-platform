@@ -198,10 +198,13 @@ function EmailFormatsPanel({ tenantId }: { tenantId: string }) {
 // ─── Account Panel ───────────────────────────────────────────────────────────
 function AccountPanel({ tenantId }: { tenantId: string }) {
   const { tenant, refetchTenant } = useTenant()
+  const [businessName, setBusinessName] = useState(''); const [bnSaving, setBnSaving] = useState(false); const [bnSaved, setBnSaved] = useState(false)
   const [notificationEmail, setNotificationEmail] = useState(''); const [saving, setSaving] = useState(false); const [saved, setSaved] = useState(false)
   const [bpDescription, setBpDescription] = useState(''); const [bpTone, setBpTone] = useState('professional'); const [bpResponseTime, setBpResponseTime] = useState(''); const [bpSignoff, setBpSignoff] = useState(''); const [bpSaving, setBpSaving] = useState(false); const [bpSaved, setBpSaved] = useState(false)
 
-  useEffect(() => { const s = (tenant?.settings ?? {}) as Record<string, unknown>; setNotificationEmail((s.notification_email as string) ?? ''); const bp = (s.business_profile ?? {}) as Record<string, string>; setBpDescription(bp.description ?? ''); setBpTone(bp.tone ?? 'professional'); setBpResponseTime(bp.response_time ?? ''); setBpSignoff(bp.signoff_name ?? '') }, [tenant])
+  useEffect(() => { setBusinessName(tenant?.name ?? ''); const s = (tenant?.settings ?? {}) as Record<string, unknown>; setNotificationEmail((s.notification_email as string) ?? ''); const bp = (s.business_profile ?? {}) as Record<string, string>; setBpDescription(bp.description ?? ''); setBpTone(bp.tone ?? 'professional'); setBpResponseTime(bp.response_time ?? ''); setBpSignoff(bp.signoff_name ?? '') }, [tenant])
+
+  async function saveBusinessName() { setBnSaving(true); await supabase.from('tenants').update({ name: businessName }).eq('id', tenantId); await refetchTenant(); setBnSaved(true); setTimeout(() => setBnSaved(false), 2000); setBnSaving(false) }
 
   async function save() { setSaving(true); const currentSettings = (tenant?.settings as Record<string, unknown>) ?? {}; await supabase.from('tenants').update({ settings: { ...currentSettings, notification_email: notificationEmail } }).eq('id', tenantId); await refetchTenant(); setSaved(true); setTimeout(() => setSaved(false), 2000); setSaving(false) }
 
@@ -210,6 +213,10 @@ function AccountPanel({ tenantId }: { tenantId: string }) {
   return (
     <div className="space-y-10">
       <div className="max-w-md space-y-5">
+        <div><label className="block text-xs font-medium text-slate-700 mb-1">Business name</label><input value={businessName} onChange={e => { setBusinessName(e.target.value); setBnSaved(false) }} onKeyDown={e => { if (e.key === 'Enter') saveBusinessName() }} placeholder="e.g. Acme Financial Planning" className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" /></div>
+        <button onClick={saveBusinessName} disabled={bnSaving} className={cn('flex items-center gap-1.5 px-4 py-2 text-sm font-medium rounded-lg transition-colors', bnSaved ? 'bg-green-600 text-white' : 'bg-blue-600 hover:bg-blue-700 text-white disabled:opacity-50')}>{bnSaved ? <><Check size={14} /> Saved</> : bnSaving ? 'Saving…' : 'Save'}</button>
+      </div>
+      <div className="max-w-md space-y-5 border-t border-slate-200 pt-8">
         <p className="text-sm text-slate-500">System notifications (e.g. new enquiries) will be sent to this address.</p>
         <div><label className="block text-xs font-medium text-slate-700 mb-1">Notification email</label><input type="email" value={notificationEmail} onChange={e => { setNotificationEmail(e.target.value); setSaved(false) }} onKeyDown={e => { if (e.key === 'Enter') save() }} placeholder="e.g. you@yourcompany.com" className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" /></div>
         <button onClick={save} disabled={saving} className={cn('flex items-center gap-1.5 px-4 py-2 text-sm font-medium rounded-lg transition-colors', saved ? 'bg-green-600 text-white' : 'bg-blue-600 hover:bg-blue-700 text-white disabled:opacity-50')}>{saved ? <><Check size={14} /> Saved</> : saving ? 'Saving…' : 'Save'}</button>
