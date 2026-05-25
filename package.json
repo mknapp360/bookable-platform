@@ -15,7 +15,9 @@
     "build:crm":       "npm run build --workspace=@bookable/crm-core",
     "build:wilkinson": "turbo build --filter=wilkinson-er",
     "dev:therayan":    "turbo dev --filter=therayan-partners",
-    "build:therayan":  "turbo build --filter=therayan-partners"
+    "build:therayan":  "turbo build --filter=therayan-partners",
+    "dev:saas":        "turbo dev --filter=bookable-saas",
+    "build:saas":      "turbo build --filter=bookable-saas"
   },
   "packageManager": "npm@11.6.2",
   "devDependencies": {

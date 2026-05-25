@@ -1,0 +1,53 @@
+# Bookable CRM
+
+> Bookable CRM is a business management platform designed for both humans and AI. One system. Every interface. Manage your business on the dashboard, or just ask AI.
+
+## What is Bookable CRM
+
+Bookable CRM is a complete operating system for any business — from lead capture through to completed work. It combines CRM, workflow automation and AI in a single system, accessible through three interfaces: a traditional dashboard, a built-in AI chat embedded inside the app, and an MCP connector for power users working directly in Claude or ChatGPT.
+
+The underlying data model is shared across all three interfaces. The interface changes. The data doesn't.
+
+## Core Features
+
+- Contact and client management
+- Case and document management
+- Sales pipeline with automated stage progression
+- Task management
+- Calendar integration (Google, Outlook)
+- Email campaigns and automated communications
+- Integration with Xero and compliance platforms
+- Built-in AI chat — ask AI to find information, update records and complete work from inside the app
+- MCP connector — connect Bookable directly to Claude, ChatGPT or any MCP-compatible AI agent
+
+## MCP Integration
+
+Bookable exposes a Model Context Protocol (MCP) server that allows AI assistants to read and write CRM data directly. Power users can manage contacts, cases, tasks, pipeline and communications without opening the dashboard. The MCP server authenticates via OAuth 2.0 and respects per-tenant data boundaries.
+
+Bookable is listed in Anthropic's Connectors Directory.
+
+## Architecture
+
+Bookable is built on a shared workflow engine with three interfaces:
+
+1. Dashboard — the full web UI for human operators
+2. Embedded AI chat — Claude-powered assistant built into the dashboard
+3. MCP connector — machine-readable interface for AI agents and power users
+
+## Pricing
+
+- 14-day free trial
+- starting at £20/month fixed pricing
+- No per-user fees
+- No contract
+
+## Links
+
+- Website: https://bookablecrm.com
+- Sign up: https://bookablecrm.com/signup
+- MCP connector: https://bookablecrm.com/mcp
+- Contact: martin@bookable.online
+
+## Company
+
+Bookable is based in the United Kingdom and serves businesses across all sectors. Domain-specific workflow modules are available for regulated professions including mortgage brokers, equity release advisers, property investors and solicitors.

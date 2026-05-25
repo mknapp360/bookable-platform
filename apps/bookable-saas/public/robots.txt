@@ -1,0 +1,14 @@
+User-agent: *
+Allow: /
+Disallow: /dashboard
+Disallow: /contacts
+Disallow: /cases
+Disallow: /pipeline
+Disallow: /enquiries
+Disallow: /tasks
+Disallow: /calendar
+Disallow: /documents
+Disallow: /settings
+Disallow: /auth
+
+Sitemap: https://bookablecrm.com/sitemap.xml
