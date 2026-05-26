@@ -93,7 +93,6 @@ function AiDraftSection({
   const [draft, setDraft]           = useState(initialDraft ?? '')
   const [status, setStatus]         = useState(initialStatus ?? 'none')
   const [sending, setSending]       = useState(false)
-  const [sent, setSent]             = useState(false)
   const [mode, setMode]             = useState<'ai' | 'manual'>('ai')
   const [manualBody, setManualBody] = useState('')
 
@@ -157,7 +156,6 @@ function AiDraftSection({
           .update({ ai_draft_status: 'sent' })
           .eq('id', enquiryId)
         setStatus('sent')
-        setSent(true)
       }
     } catch (err) {
       console.error('Failed to send:', err)
@@ -212,7 +210,7 @@ function AiDraftSection({
         {toggleBar}
         <textarea
           value={manualBody}
-          onChange={e => { setManualBody(e.target.value); setSent(false) }}
+          onChange={e => setManualBody(e.target.value)}
           rows={6}
           placeholder="Write your reply…"
           className="w-full border border-slate-200 rounded-lg px-4 py-3 text-sm text-slate-800 leading-relaxed resize-none focus:outline-none focus:ring-2 focus:ring-blue-500 mb-3"
