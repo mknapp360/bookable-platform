@@ -1,6 +1,8 @@
 import { useState } from 'react'
 import { Send, CheckCircle } from 'lucide-react'
-import { supabase } from '../lib/supabase'
+
+const SUBMIT_ENQUIRY_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/submit-enquiry`
+const EMBED_KEY = import.meta.env.VITE_EMBED_KEY
 
 export default function ContactForm() {
   const [form, setForm] = useState({ name: '', email: '', message: '' })
@@ -11,30 +13,19 @@ export default function ContactForm() {
     setStatus('sending')
 
     try {
-      const { error } = await supabase.from('enquiries').insert({
-        tenant_id: '51ed5edf-0482-4558-934e-3a73617d56f1',
-        pipeline_stage_id: '38e0ea9f-8832-4136-b8f5-bdb03ede7004',
-        name: form.name,
-        email: form.email,
-        message: form.message,
-        source: 'contact_form',
-      })
-
-      if (error) throw error
-
-      // Fire-and-forget: send email notification via edge function
-      fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/send-enquiry`, {
+      const res = await fetch(SUBMIT_ENQUIRY_URL, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          apikey: import.meta.env.VITE_SUPABASE_ANON_KEY,
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
+          embed_key: EMBED_KEY,
           name: form.name,
           email: form.email,
           message: form.message,
         }),
-      }).catch((err) => console.error('send-enquiry edge function error:', err))
+      })
+
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error || 'Submission failed')
 
       setStatus('sent')
       setForm({ name: '', email: '', message: '' })
