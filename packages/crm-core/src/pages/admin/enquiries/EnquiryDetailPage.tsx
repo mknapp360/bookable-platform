@@ -172,7 +172,7 @@ function AiDraftSection({
           <CheckCircle2 size={14} className="text-green-500 shrink-0" />
           <h3 className="text-xs font-semibold text-slate-400 uppercase tracking-wide">Reply sent</h3>
         </div>
-        <p className="text-sm text-slate-500 whitespace-pre-wrap leading-relaxed">{draft || manualBody}</p>
+        <p className="text-sm text-slate-500 whitespace-pre-wrap leading-relaxed">{mode === 'manual' ? manualBody : draft}</p>
       </div>
     )
   }

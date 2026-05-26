@@ -52,6 +52,17 @@ Deno.serve(async (req: Request) => {
       )
     }
 
+    // Decode JWT to get user ID for reply-to lookup later
+    const token = authHeader.replace('Bearer ', '')
+    const jwt = JSON.parse(atob(token.split('.')[1]))
+    const userId = jwt.sub as string
+    if (!userId) {
+      return new Response(
+        JSON.stringify({ error: 'Invalid token' }),
+        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      )
+    }
+
     const userClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
       global: { headers: { Authorization: authHeader } },
     })
@@ -74,20 +85,27 @@ Deno.serve(async (req: Request) => {
 
     const { data: tenantRow } = await admin
       .from('tenants')
-      .select('settings')
+      .select('name, settings')
       .eq('id', tenant_id)
       .single()
 
     const settings   = (tenantRow?.settings ?? {}) as Record<string, unknown>
     const emailConfig = (settings.email_config ?? {}) as Record<string, unknown>
-    const fromEmail  = emailConfig.from_email as string | undefined
-    const fromName   = emailConfig.from_name  as string | undefined
+    let fromEmail  = emailConfig.from_email as string | undefined
+    let fromName   = emailConfig.from_name  as string | undefined
 
+    // Fall back: send from bookablecrm.com with reply-to set to the logged-in user's email
+    let replyTo: { email: string; name?: string } | undefined
     if (!fromEmail) {
-      return new Response(
-        JSON.stringify({ error: 'From email not configured — go to Settings → Email Formats' }),
-        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      )
+      fromEmail = 'support@bookablecrm.com'
+      if (!fromName) fromName = tenantRow?.name ?? 'BookableCRM'
+
+      // Look up the authenticated user's email for reply-to
+      const { data: userData } = await admin.auth.admin.getUserById(userId)
+      const userEmail = userData?.user?.email
+      if (userEmail) {
+        replyTo = { email: userEmail, ...(fromName ? { name: fromName } : {}) }
+      }
     }
 
     // ── Send via SendGrid ─────────────────────────────────────────────────────
@@ -100,6 +118,7 @@ Deno.serve(async (req: Request) => {
       body: JSON.stringify({
         personalizations: [{ to: [{ email: to_email, name: to_name }] }],
         from: { email: fromEmail, ...(fromName ? { name: fromName } : {}) },
+        ...(replyTo ? { reply_to: replyTo } : {}),
         subject,
         content: [{ type: 'text/plain', value: body }],
       }),
