@@ -16,7 +16,7 @@ import { supabase } from '@/lib/supabase'
 import { cn } from '@/lib/cn'
 import type { Activity, Case, Contact } from '@/types'
 
-const CASE_TRIGGER_STAGE = 'setting up client'
+// Case conversion stage is now read from tenant.case_conversion_stage_id
 
 type NoteTab = 'enquiry' | 'meeting' | 'activity'
 
@@ -358,7 +358,8 @@ export function ContactDetailPage() {
       })
     }
 
-    if (selectedStage && selectedStage.name.toLowerCase().trim() === CASE_TRIGGER_STAGE) {
+    const conversionStageId = tenant?.case_conversion_stage_id ?? null
+    if (conversionStageId && stageId === conversionStageId) {
       const { data: existingCases } = await supabase
         .from('cases')
         .select('id')
@@ -589,7 +590,7 @@ export function ContactDetailPage() {
                   }
                 </button>
               )}
-              {currentStage?.name.toLowerCase().trim() === CASE_TRIGGER_STAGE && (
+              {tenant?.case_conversion_stage_id && contact?.pipeline_stage_id === tenant.case_conversion_stage_id && (
                 <span className="flex items-center gap-1 text-xs text-green-600 ml-2">
                   <CheckCircle2 size={11} /> Case created
                 </span>

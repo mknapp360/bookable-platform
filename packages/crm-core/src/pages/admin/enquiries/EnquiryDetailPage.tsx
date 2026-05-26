@@ -341,8 +341,11 @@ export function EnquiryDetailPage() {
 
     const selectedStage = stages.find(s => s.id === stageId)
 
-    // Convert enquiry to a contact when moved to "contacted" stage
-    if (selectedStage && selectedStage.name.toLowerCase().trim() === CONTACT_TRIGGER_STAGE) {
+    // Convert enquiry to a contact when moved to "contacted" stage or the case conversion stage
+    const isContactTrigger = selectedStage && selectedStage.name.toLowerCase().trim() === CONTACT_TRIGGER_STAGE
+    const conversionStageId = tenant?.case_conversion_stage_id ?? null
+    const isCaseTrigger = conversionStageId && stageId === conversionStageId
+    if (isContactTrigger || isCaseTrigger) {
       const nameParts = enquiry.name.trim().split(/\s+/)
       const firstName = nameParts[0] ?? enquiry.name
       const lastName = nameParts.slice(1).join(' ') || ''
@@ -352,7 +355,7 @@ export function EnquiryDetailPage() {
         last_name: lastName,
         email: enquiry.email || null,
         source: (['website','referral','manual','phone','email','other'].includes(enquiry.source) ? enquiry.source as Contact['source'] : 'other'),
-        status: 'lead',
+        status: isCaseTrigger ? 'active' : 'lead',
         notes: enquiry.notes || null,
         pipeline_stage_id: stageId,
         metadata: enquiry.message ? { enquiry_message: enquiry.message } : {},
@@ -378,8 +381,37 @@ export function EnquiryDetailPage() {
           tenant_id: tenantId,
           contact_id: newContact.id,
           type: 'contact_created',
-          body: `Contact created from enquiry (moved to "${selectedStage.name}")`,
+          body: `Contact created from enquiry (moved to "${selectedStage?.name}")`,
         })
+
+        // Also create a case if moved to the case conversion stage
+        if (isCaseTrigger) {
+          const noteParts: string[] = []
+          if (enquiry.message) noteParts.push(`## Enquiry Message\n${enquiry.message}`)
+          if (enquiry.notes?.trim()) noteParts.push(`## Meeting Notes\n${enquiry.notes.trim()}`)
+          const caseNotes = noteParts.join('\n\n') || null
+
+          const { data: newCase } = await supabase
+            .from('cases')
+            .insert({
+              tenant_id: tenantId, contact_id: newContact.id,
+              title: `${firstName} ${lastName} — Onboarding`,
+              stage_id: stageId, notes: caseNotes,
+              metadata: enquiry.message ? { enquiry_message: enquiry.message } : {},
+            })
+            .select().single()
+
+          if (newCase) {
+            await supabase.from('activities').insert({
+              tenant_id: tenantId, contact_id: newContact.id, type: 'case_created',
+              body: `Case automatically created: "${firstName} ${lastName} — Onboarding"`,
+            })
+            setStageSaving(false)
+            navigate(`/cases/${newCase.id}`)
+            return
+          }
+        }
+
         // Navigate to the new contact page
         setStageSaving(false)
         navigate(`/contacts/${newContact.id}`)

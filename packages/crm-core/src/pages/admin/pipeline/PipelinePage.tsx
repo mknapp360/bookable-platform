@@ -11,7 +11,6 @@ import { supabase } from '@/lib/supabase'
 import { cn } from '@/lib/cn'
 import type { Case, Contact, Enquiry, PipelineStage } from '@/types'
 
-const CASE_TRIGGER_STAGE = 'setting up client'
 const CONTACT_TRIGGER_STAGE = 'contacted'
 
 type BoardItem =
@@ -236,6 +235,8 @@ export function PipelinePage() {
   const { tenant } = useTenant()
   const tenantId = tenant?.id ?? null
 
+  const conversionStageId = tenant?.case_conversion_stage_id ?? null
+
   const { cases, updateCase, addCase, refetch: refetchCases } = useCases(tenantId)
   const { contacts, updatePipelineStage, updateContact, addContact, refetch: refetchContacts } = useContacts(tenantId)
   const { enquiries, updatePipelineStage: updateEnquiryStage, updateEnquiry, refetch: refetchEnquiries } = useEnquiries(tenantId)
@@ -336,8 +337,11 @@ export function PipelinePage() {
       if (enquiry && enquiry.pipeline_stage_id !== targetStageId) {
         const targetStage = stages.find(s => s.id === targetStageId)
 
-        // Convert enquiry to contact when moved to "contacted" stage
-        if (targetStage && targetStage.name.toLowerCase().trim() === CONTACT_TRIGGER_STAGE) {
+        // Convert enquiry to contact when moved to "contacted" stage or the case conversion stage
+        const isContactTrigger = targetStage && targetStage.name.toLowerCase().trim() === CONTACT_TRIGGER_STAGE
+        const isCaseTrigger = conversionStageId && targetStageId === conversionStageId
+
+        if (isContactTrigger || isCaseTrigger) {
           const nameParts = enquiry.name.trim().split(/\s+/)
           const firstName = nameParts[0] ?? enquiry.name
           const lastName = nameParts.slice(1).join(' ') || ''
@@ -347,7 +351,7 @@ export function PipelinePage() {
             last_name: lastName,
             email: enquiry.email || null,
             source: (['website','referral','manual','phone','email','other'].includes(enquiry.source) ? enquiry.source as Contact['source'] : 'other'),
-            status: 'lead',
+            status: isCaseTrigger ? 'active' : 'lead',
             notes: enquiry.notes || null,
             pipeline_stage_id: targetStageId,
             metadata: enquiry.message ? { enquiry_message: enquiry.message } : {},
@@ -378,8 +382,35 @@ export function PipelinePage() {
               tenant_id: tenantId,
               contact_id: newContact.id,
               type: 'contact_created',
-              body: `Contact created from enquiry (moved to "${targetStage.name}")`,
+              body: `Contact created from enquiry (moved to "${targetStage?.name}")`,
             })
+
+            // Also create a case if dropped on the case conversion stage
+            if (isCaseTrigger) {
+              const meta = (enquiry.message ? { enquiry_message: enquiry.message } : {}) as Record<string, unknown>
+              const noteParts: string[] = []
+              if (enquiry.message) noteParts.push(`## Enquiry Message\n${enquiry.message}`)
+              if (enquiry.notes?.trim()) noteParts.push(`## Meeting Notes\n${enquiry.notes.trim()}`)
+              const caseNotes = noteParts.join('\n\n') || null
+
+              const { data: newCase } = await supabase
+                .from('cases')
+                .insert({
+                  tenant_id: tenantId, contact_id: newContact.id,
+                  title: `${firstName} ${lastName} — Onboarding`,
+                  stage_id: targetStageId, notes: caseNotes, metadata: meta,
+                })
+                .select().single()
+
+              if (newCase) {
+                await supabase.from('activities').insert({
+                  tenant_id: tenantId, contact_id: newContact.id, type: 'case_created',
+                  body: `Case automatically created: "${firstName} ${lastName} — Onboarding"`,
+                })
+                setAutoCaseNotice({ name: `${firstName} ${lastName} — Onboarding`, caseId: (newCase as Case).id })
+                await refetchCases()
+              }
+            }
           }
         } else {
           await updateEnquiryStage(draggedId, targetStageId)
@@ -409,7 +440,7 @@ export function PipelinePage() {
         })
       }
 
-      if (targetStage && targetStage.name.toLowerCase().trim() === CASE_TRIGGER_STAGE) {
+      if (conversionStageId && targetStageId === conversionStageId) {
         const { data: existing } = await supabase
           .from('cases').select('id').eq('tenant_id', tenantId)
           .eq('contact_id', draggedId).is('closed_at', null).limit(1)
