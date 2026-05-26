@@ -2,6 +2,8 @@ import { createContext, useContext, useEffect, useState } from 'react'
 import type { User, Session } from '@supabase/supabase-js'
 import { supabase } from '../lib/supabase'
 
+const TENANT_ID = '51ed5edf-0482-4558-934e-3a73617d56f1'
+
 interface AuthState {
   user: User | null
   session: Session | null
@@ -42,7 +44,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const { error } = await supabase.auth.signUp({
       email,
       password,
-      options: { data: { full_name: fullName } },
+      options: {
+        data: {
+          full_name: fullName,
+          portal_tenant_id: TENANT_ID,
+        },
+      },
     })
     return { error: error?.message ?? null }
   }
