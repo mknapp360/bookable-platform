@@ -3,7 +3,7 @@ import { useParams, useNavigate, Link } from 'react-router-dom'
 import {
   ArrowLeft, Mail, Pencil,
   Tag, ClipboardList, MessageSquare, Save, Trash2,
-  Sparkles, Send, Loader2, CheckCircle2, Settings,
+  Sparkles, Send, Loader2, CheckCircle2, Settings, PenLine,
 } from 'lucide-react'
 import { useTenant } from '@/hooks/useTenant'
 import { useEnquiries } from '@/hooks/useEnquiries'
@@ -72,7 +72,7 @@ function MeetingNotesTab({
   )
 }
 
-// ─── AI Draft Section ────────────────────────────────────────────────────────
+// ─── Reply Section (AI / Manual toggle) ─────────────────────────────────────
 function AiDraftSection({
   enquiryId,
   enquiryEmail,
@@ -90,10 +90,12 @@ function AiDraftSection({
   initialStatus: 'none' | 'generating' | 'ready' | 'sent' | undefined
   hasBusinessProfile: boolean
 }) {
-  const [draft, setDraft]     = useState(initialDraft ?? '')
-  const [status, setStatus]   = useState(initialStatus ?? 'none')
-  const [sending, setSending] = useState(false)
-  const [sent, setSent]       = useState(false)
+  const [draft, setDraft]           = useState(initialDraft ?? '')
+  const [status, setStatus]         = useState(initialStatus ?? 'none')
+  const [sending, setSending]       = useState(false)
+  const [sent, setSent]             = useState(false)
+  const [mode, setMode]             = useState<'ai' | 'manual'>('ai')
+  const [manualBody, setManualBody] = useState('')
 
   // Sync from props if they change (e.g. refetch)
   useEffect(() => {
@@ -124,8 +126,8 @@ function AiDraftSection({
     return () => { supabase.removeChannel(channel) }
   }, [enquiryId])
 
-  async function handleSend() {
-    if (!draft.trim()) return
+  async function handleSend(body: string) {
+    if (!body.trim()) return
     setSending(true)
     try {
       const { data: session } = await supabase.auth.getSession()
@@ -144,7 +146,7 @@ function AiDraftSection({
           to_email: enquiryEmail,
           to_name: enquiryName,
           subject: `Re: Your enquiry`,
-          body: draft,
+          body,
         }),
       })
 
@@ -158,65 +160,135 @@ function AiDraftSection({
         setSent(true)
       }
     } catch (err) {
-      console.error('Failed to send draft:', err)
+      console.error('Failed to send:', err)
     } finally {
       setSending(false)
     }
   }
 
+  // Sent state — same for both modes
+  if (status === 'sent') {
+    return (
+      <div className="bg-white rounded-xl border border-slate-200 p-5">
+        <div className="flex items-center gap-2 mb-3">
+          <CheckCircle2 size={14} className="text-green-500 shrink-0" />
+          <h3 className="text-xs font-semibold text-slate-400 uppercase tracking-wide">Reply sent</h3>
+        </div>
+        <p className="text-sm text-slate-500 whitespace-pre-wrap leading-relaxed">{draft || manualBody}</p>
+      </div>
+    )
+  }
+
+  // ── Mode toggle ──
+  const toggleBar = (
+    <div className="flex items-center justify-between mb-4">
+      <div className="flex items-center gap-1 bg-slate-100 rounded-lg p-0.5">
+        <button
+          onClick={() => setMode('ai')}
+          className={cn(
+            'flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-md transition-colors',
+            mode === 'ai' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-700'
+          )}
+        >
+          <Sparkles size={12} /> AI Draft
+        </button>
+        <button
+          onClick={() => setMode('manual')}
+          className={cn(
+            'flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-md transition-colors',
+            mode === 'manual' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-700'
+          )}
+        >
+          <PenLine size={12} /> Manual Reply
+        </button>
+      </div>
+    </div>
+  )
+
+  // ── Manual mode ──
+  if (mode === 'manual') {
+    return (
+      <div className="bg-white rounded-xl border border-slate-200 p-5">
+        {toggleBar}
+        <textarea
+          value={manualBody}
+          onChange={e => { setManualBody(e.target.value); setSent(false) }}
+          rows={6}
+          placeholder="Write your reply…"
+          className="w-full border border-slate-200 rounded-lg px-4 py-3 text-sm text-slate-800 leading-relaxed resize-none focus:outline-none focus:ring-2 focus:ring-blue-500 mb-3"
+        />
+        <div className="flex items-center justify-end gap-2">
+          <button
+            onClick={() => handleSend(manualBody)}
+            disabled={sending || !manualBody.trim()}
+            className={cn(
+              'flex items-center gap-1.5 px-4 py-1.5 text-sm font-medium rounded-lg transition-colors',
+              'bg-blue-600 hover:bg-blue-700 text-white disabled:opacity-50'
+            )}
+          >
+            {sending ? (
+              <><Loader2 size={13} className="animate-spin" /> Sending…</>
+            ) : (
+              <><Send size={13} /> Send</>
+            )}
+          </button>
+        </div>
+      </div>
+    )
+  }
+
+  // ── AI mode ──
+
   // No profile — nudge to settings
   if (status === 'none' && !hasBusinessProfile) {
     return (
-      <div className="bg-slate-50 rounded-xl border border-slate-200 p-5">
-        <div className="flex items-center gap-2 text-sm text-slate-500">
-          <Settings size={14} className="shrink-0" />
-          <span>
-            Add a business profile in{' '}
-            <Link to="/settings?tab=account" className="text-blue-600 hover:underline font-medium">
-              Settings
-            </Link>{' '}
-            to enable AI-drafted replies.
-          </span>
+      <div className="bg-white rounded-xl border border-slate-200 p-5">
+        {toggleBar}
+        <div className="bg-slate-50 rounded-lg border border-slate-200 p-4">
+          <div className="flex items-center gap-2 text-sm text-slate-500">
+            <Settings size={14} className="shrink-0" />
+            <span>
+              Add a business profile in{' '}
+              <Link to="/settings?tab=account" className="text-blue-600 hover:underline font-medium">
+                Settings
+              </Link>{' '}
+              to enable AI-drafted replies.
+            </span>
+          </div>
         </div>
       </div>
     )
   }
 
   // Profile exists but no draft yet (pre-existing enquiry)
-  if (status === 'none') return null
+  if (status === 'none') {
+    return (
+      <div className="bg-white rounded-xl border border-slate-200 p-5">
+        {toggleBar}
+        <p className="text-sm text-slate-400 italic">No AI draft available for this enquiry.</p>
+      </div>
+    )
+  }
 
   // Generating
   if (status === 'generating') {
     return (
-      <div className="bg-blue-50 rounded-xl border border-blue-100 p-5">
-        <div className="flex items-center gap-2 text-sm text-blue-600">
-          <Loader2 size={14} className="animate-spin shrink-0" />
-          <span>Drafting reply…</span>
-        </div>
-      </div>
-    )
-  }
-
-  // Sent
-  if (status === 'sent') {
-    return (
       <div className="bg-white rounded-xl border border-slate-200 p-5">
-        <div className="flex items-center gap-2 mb-3">
-          <CheckCircle2 size={14} className="text-green-500 shrink-0" />
-          <h3 className="text-xs font-semibold text-slate-400 uppercase tracking-wide">Draft sent</h3>
+        {toggleBar}
+        <div className="bg-blue-50 rounded-lg border border-blue-100 p-4">
+          <div className="flex items-center gap-2 text-sm text-blue-600">
+            <Loader2 size={14} className="animate-spin shrink-0" />
+            <span>Drafting reply…</span>
+          </div>
         </div>
-        <p className="text-sm text-slate-500 whitespace-pre-wrap leading-relaxed">{draft}</p>
       </div>
     )
   }
 
-  // Ready — editable
+  // Ready — editable AI draft
   return (
     <div className="bg-white rounded-xl border border-slate-200 p-5">
-      <div className="flex items-center gap-2 mb-3">
-        <Sparkles size={14} className="text-amber-500 shrink-0" />
-        <h3 className="text-xs font-semibold text-slate-500 uppercase tracking-wide">AI Draft Reply</h3>
-      </div>
+      {toggleBar}
       <textarea
         value={draft}
         onChange={e => setDraft(e.target.value)}
@@ -225,19 +297,15 @@ function AiDraftSection({
       />
       <div className="flex items-center justify-end gap-2">
         <button
-          onClick={handleSend}
+          onClick={() => handleSend(draft)}
           disabled={sending || !draft.trim()}
           className={cn(
             'flex items-center gap-1.5 px-4 py-1.5 text-sm font-medium rounded-lg transition-colors',
-            sent
-              ? 'bg-green-600 text-white'
-              : 'bg-blue-600 hover:bg-blue-700 text-white disabled:opacity-50'
+            'bg-blue-600 hover:bg-blue-700 text-white disabled:opacity-50'
           )}
         >
           {sending ? (
             <><Loader2 size={13} className="animate-spin" /> Sending…</>
-          ) : sent ? (
-            <><CheckCircle2 size={13} /> Sent</>
           ) : (
             <><Send size={13} /> Send</>
           )}
