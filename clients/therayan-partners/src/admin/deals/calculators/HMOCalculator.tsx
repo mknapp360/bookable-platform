@@ -8,7 +8,7 @@ interface Props {
   onSave: (inputs: Record<string, number>, outputs: Record<string, number | null>) => void
 }
 
-export function HMOCalculator({ property, analysis }: Props & { onSave: (inputs: Record<string, number>, outputs: Record<string, number | null>) => void }) {
+export function HMOCalculator({ property }: Props & { onSave: (inputs: Record<string, number>, outputs: Record<string, number | null>) => void }) {
   const [inputs, setInputs] = useState({
     purchase_price: property.price ?? 0,
     conversion_cost: 30000,

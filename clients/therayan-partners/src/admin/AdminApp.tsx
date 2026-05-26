@@ -1,7 +1,7 @@
 import { useEffect } from 'react'
 import { MemoryRouter } from 'react-router-dom'
 import { createCrmApp } from '@bookable/crm-core'
-import { Search, Kanban, Package } from 'lucide-react'
+import { Search, Kanban } from 'lucide-react'
 import { PropertySearchPage } from './deals/PropertySearchPage'
 import { DealAnalysisPage } from './deals/DealAnalysisPage'
 import { DealsPipelinePage } from './deals/DealsPipelinePage'

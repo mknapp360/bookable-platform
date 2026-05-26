@@ -11,7 +11,7 @@ import {
 import { useState } from 'react'
 import { useProperties } from './hooks/useProperties'
 import { PIPELINE_COLUMNS } from './types'
-import type { Property, PropertyStatus } from './types'
+import type { PropertyStatus } from './types'
 import { PipelineColumn } from './components/PipelineColumn'
 import { PropertyCard } from './components/PropertyCard'
 
