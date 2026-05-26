@@ -24,6 +24,7 @@ export default function Navbar() {
             className="flex items-center gap-3"
             onClick={(e) => {
               e.preventDefault()
+              if (clickTimeout.current) clearTimeout(clickTimeout.current)
               clickTimeout.current = setTimeout(() => {
                 clickTimeout.current = null
                 window.location.href = '/'
