@@ -398,7 +398,7 @@ export function PipelinePage() {
                 .insert({
                   tenant_id: tenantId, contact_id: newContact.id,
                   title: `${firstName} ${lastName} — Onboarding`,
-                  stage_id: targetStageId, notes: caseNotes, metadata: meta,
+                  stage_id: targetStageId, notes: caseNotes, metadata: meta as Record<string, string>,
                 })
                 .select().single()
 
