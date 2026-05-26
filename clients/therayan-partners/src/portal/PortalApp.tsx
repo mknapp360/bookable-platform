@@ -7,6 +7,7 @@ import { LoginPage } from './pages/LoginPage'
 import { SignupPage } from './pages/SignupPage'
 import { DocumentsPage } from './pages/DocumentsPage'
 import { DealsPage } from './pages/DealsPage'
+import { DealDetailPage } from './pages/DealDetailPage'
 
 export default function PortalApp() {
   useEffect(() => {
@@ -32,6 +33,7 @@ export default function PortalApp() {
               <Route element={<PortalLayout />}>
                 <Route path="/documents" element={<DocumentsPage />} />
                 <Route path="/deals" element={<DealsPage />} />
+                <Route path="/deals/:propertyId" element={<DealDetailPage />} />
                 <Route path="*" element={<Navigate to="/documents" replace />} />
               </Route>
             </Route>

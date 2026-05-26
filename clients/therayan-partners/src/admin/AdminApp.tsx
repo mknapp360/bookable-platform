@@ -1,10 +1,23 @@
 import { useEffect } from 'react'
 import { MemoryRouter } from 'react-router-dom'
 import { createCrmApp } from '@bookable/crm-core'
+import { Search, Kanban, Package } from 'lucide-react'
+import { PropertySearchPage } from './deals/PropertySearchPage'
+import { DealAnalysisPage } from './deals/DealAnalysisPage'
+import { DealsPipelinePage } from './deals/DealsPipelinePage'
+import { DealPackagePage } from './deals/DealPackagePage'
 
 const CrmApp = createCrmApp({
-  extraNavItems: [],
-  extraRoutes: [],
+  extraNavItems: [
+    { to: '/property-search', icon: Search,  label: 'Property Search' },
+    { to: '/deals-pipeline',  icon: Kanban,  label: 'Deals Pipeline' },
+  ],
+  extraRoutes: [
+    { path: 'property-search',                element: <PropertySearchPage /> },
+    { path: 'property-analysis/:propertyId',  element: <DealAnalysisPage /> },
+    { path: 'deals-pipeline',                 element: <DealsPipelinePage /> },
+    { path: 'deal-package/:propertyId',       element: <DealPackagePage /> },
+  ],
   caseDetailSidebar: undefined,
 })
 
