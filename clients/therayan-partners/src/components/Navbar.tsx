@@ -40,6 +40,12 @@ export default function Navbar() {
               {link.label}
             </a>
           ))}
+          <a
+            href="/portal"
+            className="text-sm font-semibold bg-brand-green text-white px-5 py-2 hover:bg-amber-600 transition-colors tracking-widest uppercase"
+          >
+            Login
+          </a>
         </div>
 
         {/* Mobile toggle */}
@@ -66,6 +72,12 @@ export default function Navbar() {
                 {link.label}
               </a>
             ))}
+            <a
+              href="/portal"
+              className="text-sm font-semibold bg-brand-green text-white px-5 py-2 text-center hover:bg-amber-600 transition-colors tracking-widest uppercase"
+            >
+              Login
+            </a>
           </div>
         </div>
       )}
