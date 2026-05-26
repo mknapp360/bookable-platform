@@ -93,7 +93,7 @@ Deno.serve(async (req: Request) => {
   // Render
   var f = CFG.fields;
   var h = '';
-  if (CFG.title) h += '<h3 style="font-family:' + esc(CFG.title_font) + ',sans-serif;font-size:' + esc(CFG.title_font_size) + ';color:' + esc(CFG.title_color) + '">' + esc(CFG.title) + '</h3>';
+  if (CFG.title) h += '<h3 style="font-family:' + CFG.title_font + ',sans-serif;font-size:' + CFG.title_font_size + ';color:' + CFG.title_color + '">' + esc(CFG.title) + '</h3>';
   h += '<form>';
   h += '<div class="bcrm-error"></div>';
   if (f.name)    h += '<label>Name</label><input name="name" type="text" required>';
@@ -145,7 +145,7 @@ Deno.serve(async (req: Request) => {
     headers: {
       ...corsHeaders,
       'Content-Type': 'application/javascript',
-      'Cache-Control': 'public, max-age=300',
+      'Cache-Control': 'no-cache, no-store, must-revalidate',
     },
   })
 })
