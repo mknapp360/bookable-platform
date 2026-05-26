@@ -49,6 +49,9 @@ Deno.serve(async (req: Request) => {
       phone:   fields.phone   === true,
       message: fields.message !== false,
     },
+    title_font:      widgetConfig.title_font       ?? 'Inter',
+    title_font_size: widgetConfig.title_font_size  ?? '20px',
+    title_color:     widgetConfig.title_color      ?? '#0f172a',
     submit_label:    widgetConfig.submit_label    ?? 'Send enquiry',
     success_message: widgetConfig.success_message ?? "Thanks! We'll be in touch shortly.",
     button_color:    widgetConfig.button_color    ?? '#2563eb',
@@ -73,7 +76,7 @@ Deno.serve(async (req: Request) => {
     style.id = 'bcrm-styles';
     style.textContent = [
       '.bcrm-form{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;max-width:480px}',
-      '.bcrm-form h3{margin:0 0 1rem;font-size:1.25rem;font-weight:600;color:#1e293b}',
+      '.bcrm-form h3{margin:0 0 1rem;font-weight:600}',
       '.bcrm-form label{display:block;margin-bottom:.25rem;font-size:.875rem;font-weight:500;color:#475569}',
       '.bcrm-form input,.bcrm-form textarea{display:block;width:100%;padding:.5rem .75rem;margin-bottom:1rem;border:1px solid #cbd5e1;border-radius:.5rem;font-size:.875rem;font-family:inherit;box-sizing:border-box}',
       '.bcrm-form input:focus,.bcrm-form textarea:focus{outline:none;border-color:#3b82f6;box-shadow:0 0 0 2px rgba(59,130,246,.25)}',
@@ -90,7 +93,7 @@ Deno.serve(async (req: Request) => {
   // Render
   var f = CFG.fields;
   var h = '';
-  if (CFG.title) h += '<h3>' + esc(CFG.title) + '</h3>';
+  if (CFG.title) h += '<h3 style="font-family:' + esc(CFG.title_font) + ',sans-serif;font-size:' + esc(CFG.title_font_size) + ';color:' + esc(CFG.title_color) + '">' + esc(CFG.title) + '</h3>';
   h += '<form>';
   h += '<div class="bcrm-error"></div>';
   if (f.name)    h += '<label>Name</label><input name="name" type="text" required>';
