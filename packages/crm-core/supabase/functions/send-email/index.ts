@@ -82,20 +82,34 @@ Deno.serve(async (req: Request) => {
     // ── Read per-tenant from address from settings (service role) ─────────────
     const { data: tenantRow } = await admin
       .from('tenants')
-      .select('settings')
+      .select('name, settings')
       .eq('id', tenant_id)
       .single()
 
     const settings   = (tenantRow?.settings ?? {}) as Record<string, unknown>
     const emailConfig = (settings.email_config ?? {}) as Record<string, unknown>
-    const fromEmail  = emailConfig.from_email as string | undefined
-    const fromName   = emailConfig.from_name  as string | undefined
+    let fromEmail  = emailConfig.from_email as string | undefined
+    let fromName   = emailConfig.from_name  as string | undefined
 
+    // Fall back: send from bookablecrm.com with tenant branding + reply-to admin
+    let replyToEmail: string | undefined
     if (!fromEmail) {
-      return new Response(
-        JSON.stringify({ error: 'From email not configured — go to Settings → Email Formats' }),
-        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      )
+      fromEmail = 'support@bookablecrm.com'
+      if (!fromName) fromName = tenantRow?.name ?? 'BookableCRM'
+
+      // Set reply-to to the tenant's first admin so responses reach them
+      const { data: adminRow } = await admin
+        .from('tenant_users')
+        .select('user_id')
+        .eq('tenant_id', tenant_id)
+        .eq('role', 'admin')
+        .limit(1)
+        .single()
+
+      if (adminRow) {
+        const { data: userData } = await admin.auth.admin.getUserById(adminRow.user_id)
+        replyToEmail = userData?.user?.email ?? undefined
+      }
     }
 
     // ── Send via SendGrid ─────────────────────────────────────────────────────
@@ -108,6 +122,7 @@ Deno.serve(async (req: Request) => {
       body: JSON.stringify({
         personalizations: [{ to: [{ email: to_email, name: to_name }] }],
         from: { email: fromEmail, ...(fromName ? { name: fromName } : {}) },
+        ...(replyToEmail ? { reply_to: { email: replyToEmail, name: fromName } } : {}),
         subject,
         content: [{ type: 'text/plain', value: body }],
       }),
