@@ -23,7 +23,7 @@ export default function Navbar() {
           className="flex items-center flex-shrink-0"
           onDoubleClick={(e) => {
             e.preventDefault()
-            window.location.href = 'https://bookable-crm.vercel.app/login'
+            window.location.href = '/admin'
           }}
         >
           <img src="/logo.png" alt="Thérayan Partners" className="h-10 w-auto" />
