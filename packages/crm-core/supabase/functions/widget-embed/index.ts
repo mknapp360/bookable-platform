@@ -70,6 +70,16 @@ Deno.serve(async (req: Request) => {
   root.className = 'bcrm-form';
   scriptEl.parentNode.insertBefore(root, scriptEl);
 
+  // Load Google Font if needed
+  var systemFonts = ['Arial','Georgia','Helvetica','Times New Roman','Verdana','Trebuchet MS'];
+  if (systemFonts.indexOf(CFG.title_font) === -1 && !document.querySelector('link[data-bcrm-font]')) {
+    var link = document.createElement('link');
+    link.rel = 'stylesheet';
+    link.setAttribute('data-bcrm-font', CFG.title_font);
+    link.href = 'https://fonts.googleapis.com/css2?family=' + encodeURIComponent(CFG.title_font) + ':wght@400;600;700&display=swap';
+    document.head.appendChild(link);
+  }
+
   // Inject styles once
   if (!document.getElementById('bcrm-styles')) {
     var style = document.createElement('style');

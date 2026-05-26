@@ -1,7 +1,6 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 
 const SUPABASE_URL             = Deno.env.get('SUPABASE_URL')!
-const SUPABASE_ANON_KEY        = Deno.env.get('SUPABASE_ANON_KEY')!
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
 const SENDGRID_API_KEY         = Deno.env.get('SENDGRID_API_KEY')!
 
@@ -52,14 +51,25 @@ Deno.serve(async (req: Request) => {
       )
     }
 
-    const userClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
-      global: { headers: { Authorization: authHeader } },
-    })
+    // Decode the JWT to get the user ID (service role verifies membership)
+    const token = authHeader.replace('Bearer ', '')
+    const payloadB64 = token.split('.')[1]
+    const jwt = JSON.parse(atob(payloadB64))
+    const userId = jwt.sub
+    if (!userId) {
+      return new Response(
+        JSON.stringify({ error: 'Invalid token' }),
+        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      )
+    }
 
-    const { data: membership } = await userClient
+    const admin = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY)
+
+    const { data: membership } = await admin
       .from('tenant_users')
       .select('role')
       .eq('tenant_id', tenant_id)
+      .eq('user_id', userId)
       .maybeSingle()
 
     if (!membership) {
@@ -70,8 +80,6 @@ Deno.serve(async (req: Request) => {
     }
 
     // ── Read per-tenant from address from settings (service role) ─────────────
-    const admin = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY)
-
     const { data: tenantRow } = await admin
       .from('tenants')
       .select('settings')
