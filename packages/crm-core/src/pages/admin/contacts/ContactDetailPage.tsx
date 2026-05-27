@@ -660,7 +660,7 @@ export function ContactDetailPage() {
                   contactId={id!}
                   contactEmail={contact.email}
                   contactName={`${contact.first_name} ${contact.last_name}`}
-                  tenantId={tenantId}
+                  tenantId={tenantId!}
                   onEmailSent={loadActivities}
                 />
               )}
