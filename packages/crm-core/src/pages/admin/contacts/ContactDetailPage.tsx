@@ -8,6 +8,7 @@ import {
 } from 'lucide-react'
 import { EnquiryPanel } from '@/components/crm/EnquiryPanel'
 import { ActivityFeed } from '@/components/crm/ActivityFeed'
+import { EmailThread } from '@/components/crm/EmailThread'
 import { ScheduleMeetingModal } from '@/components/crm/ScheduleMeetingModal'
 import { useTenant } from '@/hooks/useTenant'
 import { useContacts } from '@/hooks/useContacts'
@@ -18,7 +19,7 @@ import type { Activity, Case, Contact } from '@/types'
 
 // Case conversion stage is now read from tenant.case_conversion_stage_id
 
-type NoteTab = 'enquiry' | 'meeting' | 'activity'
+type NoteTab = 'enquiry' | 'meeting' | 'activity' | 'emails'
 
 // ─── Enquiry tab (uses shared EnquiryPanel) ───────────────────────────────────
 function EnquiryTab({ metadata }: { metadata: Record<string, unknown> }) {
@@ -438,6 +439,12 @@ export function ContactDetailPage() {
       icon: <ActivityIcon size={13} />,
       badge: activities.length || undefined,
     },
+    {
+      id: 'emails',
+      label: 'Emails',
+      icon: <Mail size={13} />,
+      badge: undefined,
+    },
   ]
 
   return (
@@ -646,6 +653,15 @@ export function ContactDetailPage() {
                   tenantId={tenantId}
                   activities={activities}
                   onActivityAdded={loadActivities}
+                />
+              )}
+              {tab === 'emails' && (
+                <EmailThread
+                  contactId={id!}
+                  contactEmail={contact.email}
+                  contactName={`${contact.first_name} ${contact.last_name}`}
+                  tenantId={tenantId}
+                  onEmailSent={loadActivities}
                 />
               )}
             </div>

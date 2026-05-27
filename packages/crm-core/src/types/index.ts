@@ -70,6 +70,25 @@ export interface Contact {
   pipeline_stage?: PipelineStage
 }
 
+// ─── Emails ───────────────────────────────────────────────────────────────
+export interface Email {
+  id: string
+  tenant_id: string
+  contact_id: string | null
+  direction: 'inbound' | 'outbound'
+  from_email: string
+  from_name: string | null
+  to_email: string
+  to_name: string | null
+  subject: string | null
+  body_text: string | null
+  body_html: string | null
+  message_id: string | null
+  in_reply_to: string | null
+  metadata: Record<string, unknown>
+  created_at: string
+}
+
 // ─── Cases ─────────────────────────────────────────────────────────────────
 export interface Case {
   id: string

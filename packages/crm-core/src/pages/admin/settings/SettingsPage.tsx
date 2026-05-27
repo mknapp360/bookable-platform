@@ -3,7 +3,7 @@ import {
   Plus, Trash2, ChevronUp, ChevronDown,
   GripVertical, Check, X, Pencil, Briefcase,
   Calendar, CheckCircle2, AlertCircle, Link2Off,
-  Copy, RefreshCw, Lock, Code2
+  Copy, RefreshCw, Lock, Code2, Mail
 } from 'lucide-react'
 import { useTenant } from '@/hooks/useTenant'
 import { usePipelineStages } from '@/hooks/usePipelineStages'
@@ -157,15 +157,34 @@ function BrandingPanel({ tenantId, initialName }: { tenantId: string; initialNam
 
 // ─── Integrations Panel ───────────────────────────────────────────────────────
 function IntegrationsPanel({ tenantId }: { tenantId: string }) {
+  const { tenant, refetchTenant } = useTenant()
   const { integration, loading, refetch, disconnect } = useTenantIntegration(tenantId, 'google_calendar')
   const [disconnecting, setDisconnecting] = useState(false)
+  const [copied, setCopied] = useState(false)
+  const [confirmRegen, setConfirmRegen] = useState(false)
   useEffect(() => { const params = new URLSearchParams(window.location.search); if (params.get('google_connected') === '1') { refetch(); const clean = new URL(window.location.href); clean.searchParams.delete('google_connected'); window.history.replaceState({}, '', clean.toString()) } }, [refetch])
   function handleConnect() { const supabaseUrl = import.meta.env.VITE_SUPABASE_URL as string; const redirectBack = window.location.href.split('?')[0] + '?tab=integrations'; window.location.href = `${supabaseUrl}/functions/v1/google-oauth-init?tenant_id=${tenantId}&redirect_back=${encodeURIComponent(redirectBack)}` }
   async function handleDisconnect() { setDisconnecting(true); await disconnect(); setDisconnecting(false) }
+
+  const settings = (tenant?.settings ?? {}) as Record<string, unknown>
+  const inboundKey = settings.inbound_email_key as string | undefined
+  const inboundAddress = inboundKey ? `${inboundKey}@inbound.bookablecrm.com` : null
+
+  async function generateInboundKey() {
+    const currentSettings = (tenant?.settings as Record<string, unknown>) ?? {}
+    const key = crypto.randomUUID().replace(/-/g, '').slice(0, 8)
+    await supabase.from('tenants').update({ settings: { ...currentSettings, inbound_email_key: key } }).eq('id', tenantId)
+    await refetchTenant()
+    setConfirmRegen(false)
+  }
+  function copyAddress() { if (inboundAddress) { navigator.clipboard.writeText(inboundAddress); setCopied(true); setTimeout(() => setCopied(false), 2000) } }
+
   if (loading) return <p className="text-sm text-slate-400 py-4">Loading…</p>
   return (
-    <div>
-      <p className="text-sm text-slate-500 mb-6">Connect third-party services to unlock additional features like calendar scheduling.</p>
+    <div className="space-y-6">
+      <p className="text-sm text-slate-500">Connect third-party services to unlock additional features like calendar scheduling and email capture.</p>
+
+      {/* Google Calendar */}
       <div className="border border-slate-200 rounded-xl p-5">
         <div className="flex items-start justify-between gap-4">
           <div className="flex items-center gap-3"><div className="w-10 h-10 rounded-xl bg-white border border-slate-200 shadow-sm flex items-center justify-center shrink-0"><Calendar size={20} className="text-blue-500" /></div><div><p className="text-sm font-semibold text-slate-900">Google Calendar</p><p className="text-xs text-slate-500 mt-0.5">Schedule meetings with clients and automatically create Google Meet links.</p></div></div>
@@ -173,6 +192,28 @@ function IntegrationsPanel({ tenantId }: { tenantId: string }) {
         </div>
         <div className="mt-4 pt-4 border-t border-slate-100">{integration ? (<div className="flex items-center gap-2 text-xs text-green-700"><CheckCircle2 size={13} className="text-green-500" />Connected as <span className="font-medium">{integration.connected_email}</span></div>) : (<div className="flex items-center gap-2 text-xs text-slate-400"><AlertCircle size={13} />Not connected</div>)}</div>
         {!integration && (<div className="mt-3 bg-amber-50 border border-amber-100 rounded-lg px-4 py-3 text-xs text-amber-800 space-y-1"><p className="font-medium">Before connecting, make sure:</p><p>1. Your Google Cloud project has the <strong>Calendar API</strong> enabled.</p><p>2. Your OAuth credentials include this redirect URI:</p><code className="block bg-amber-100 rounded px-2 py-1 mt-1 break-all font-mono text-[11px]">{import.meta.env.VITE_SUPABASE_URL}/functions/v1/google-oauth-callback</code><p>3. <code className="font-mono bg-amber-100 rounded px-1">GOOGLE_CLIENT_ID</code> and <code className="font-mono bg-amber-100 rounded px-1">GOOGLE_CLIENT_SECRET</code> are set as Supabase secrets.</p></div>)}
+      </div>
+
+      {/* Email Forwarding */}
+      <div className="border border-slate-200 rounded-xl p-5">
+        <div className="flex items-start justify-between gap-4 mb-4">
+          <div className="flex items-center gap-3"><div className="w-10 h-10 rounded-xl bg-white border border-slate-200 shadow-sm flex items-center justify-center shrink-0"><Mail size={20} className="text-violet-500" /></div><div><p className="text-sm font-semibold text-slate-900">Email Forwarding</p><p className="text-xs text-slate-500 mt-0.5">Forward emails from your inbox to capture them against contacts in the CRM.</p></div></div>
+        </div>
+        {inboundAddress ? (
+          <div>
+            <p className="text-xs text-slate-500 mb-2">Forward emails from your inbox to this address. Emails from known contacts will appear on their profile.</p>
+            <div className="flex items-center gap-2">
+              <code className="flex-1 bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-sm font-mono text-slate-700 truncate">{inboundAddress}</code>
+              <button onClick={copyAddress} className="flex items-center gap-1.5 px-3 py-2 text-xs font-medium text-slate-600 hover:text-slate-800 border border-slate-200 rounded-lg transition-colors shrink-0">{copied ? <><CheckCircle2 size={12} /> Copied</> : <><Copy size={12} /> Copy</>}</button>
+              {confirmRegen ? (<div className="flex items-center gap-1 shrink-0"><span className="text-xs text-red-600 mr-1">This will break existing forwarding.</span><button onClick={generateInboundKey} className="text-xs font-medium text-red-600 hover:text-red-700">Regenerate</button><span className="text-slate-300">/</span><button onClick={() => setConfirmRegen(false)} className="text-xs font-medium text-slate-500 hover:text-slate-700">Cancel</button></div>) : (<button onClick={() => setConfirmRegen(true)} className="flex items-center gap-1.5 px-3 py-2 text-xs font-medium text-slate-400 hover:text-slate-600 border border-slate-200 rounded-lg transition-colors shrink-0"><RefreshCw size={12} /> Regenerate</button>)}
+            </div>
+          </div>
+        ) : (
+          <div>
+            <p className="text-xs text-slate-500 mb-3">Generate a forwarding address to start capturing inbound emails from your contacts.</p>
+            <button onClick={generateInboundKey} className="flex items-center gap-1.5 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg transition-colors">Generate forwarding address</button>
+          </div>
+        )}
       </div>
     </div>
   )

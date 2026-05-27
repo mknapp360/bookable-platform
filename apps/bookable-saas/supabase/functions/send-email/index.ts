@@ -6,12 +6,13 @@ const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
 const SENDGRID_API_KEY         = Deno.env.get('SENDGRID_API_KEY')!
 
 interface SendEmailPayload {
-  tenant_id:  string
-  contact_id: string
-  to_email:   string
-  to_name:    string
-  subject:    string
-  body:       string
+  tenant_id:    string
+  contact_id:   string
+  to_email:     string
+  to_name:      string
+  subject:      string
+  body:         string
+  in_reply_to?: string
 }
 
 const corsHeaders = {
@@ -34,7 +35,7 @@ Deno.serve(async (req: Request) => {
     }
 
     const payload: SendEmailPayload = await req.json()
-    const { tenant_id, contact_id, to_email, to_name, subject, body } = payload
+    const { tenant_id, contact_id, to_email, to_name, subject, body, in_reply_to } = payload
 
     if (!tenant_id || !to_email || !subject || !body) {
       return new Response(
@@ -109,6 +110,10 @@ Deno.serve(async (req: Request) => {
     }
 
     // ── Send via SendGrid ─────────────────────────────────────────────────────
+    const outboundMessageId = `<${crypto.randomUUID()}@bookablecrm.com>`
+    const sgHeaders: Record<string, string> = { 'Message-ID': outboundMessageId }
+    if (in_reply_to) sgHeaders['In-Reply-To'] = in_reply_to
+
     const sgRes = await fetch('https://api.sendgrid.com/v3/mail/send', {
       method: 'POST',
       headers: {
@@ -121,6 +126,7 @@ Deno.serve(async (req: Request) => {
         ...(replyTo ? { reply_to: replyTo } : {}),
         subject,
         content: [{ type: 'text/plain', value: body }],
+        headers: sgHeaders,
       }),
     })
 
@@ -133,12 +139,28 @@ Deno.serve(async (req: Request) => {
       )
     }
 
+    // ── Store outbound email ────────────────────────────────────────────────
+    const { data: emailRow } = await admin.from('emails').insert({
+      tenant_id,
+      contact_id:  contact_id || null,
+      direction:   'outbound',
+      from_email:  fromEmail,
+      from_name:   fromName || null,
+      to_email,
+      to_name:     to_name || null,
+      subject,
+      body_text:   body,
+      message_id:  outboundMessageId,
+      in_reply_to: in_reply_to || null,
+    }).select('id').single()
+
     // ── Log activity ──────────────────────────────────────────────────────────
     await admin.from('activities').insert({
       tenant_id,
       contact_id,
       type: 'email',
-      body: `"Nice to meet you" email sent to ${to_email}`,
+      body: `Email sent: "${subject}"`,
+      metadata: { email_id: emailRow?.id ?? null, direction: 'outbound' },
     })
 
     return new Response(
