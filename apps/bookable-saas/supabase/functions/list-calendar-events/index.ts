@@ -116,8 +116,8 @@ Deno.serve(async (req: Request) => {
 
     if (!calRes.ok) {
       const detail = await calRes.text();
-      console.error('Google Calendar API error:', detail);
-      return jsonRes({ events: [], connected: true, error: 'Google Calendar API error' });
+      console.error('Google Calendar API error:', calRes.status, detail);
+      return jsonRes({ events: [], connected: true, error: `Google Calendar API error (${calRes.status}): ${detail}` });
     }
 
     const calData = await calRes.json();
