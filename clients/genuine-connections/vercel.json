@@ -1,0 +1,18 @@
+{
+  "framework": null,
+  "buildCommand": "cd ../.. && npx turbo build --filter=genuine-connections",
+  "installCommand": "cd ../.. && npm install",
+  "outputDirectory": "dist/client",
+  "functions": {
+    "api/ssr.ts": { "includeFiles": "dist/server/**" }
+  },
+  "rewrites": [
+    { "source": "/(.*)", "destination": "/api/ssr" }
+  ],
+  "headers": [
+    {
+      "source": "/assets/(.*)",
+      "headers": [{ "key": "Cache-Control", "value": "public, max-age=31536000, immutable" }]
+    }
+  ]
+}

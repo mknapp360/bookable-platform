@@ -17,7 +17,11 @@
     "dev:therayan":    "turbo dev --filter=therayan-partners",
     "build:therayan":  "turbo build --filter=therayan-partners",
     "dev:saas":        "turbo dev --filter=bookable-saas",
-    "build:saas":      "turbo build --filter=bookable-saas"
+    "build:saas":      "turbo build --filter=bookable-saas",
+    "dev:gc":          "turbo dev --filter=genuine-connections",
+    "build:gc":        "turbo build --filter=genuine-connections",
+    "dev:online":      "turbo dev --filter=bookable-online",
+    "build:online":    "turbo build --filter=bookable-online"
   },
   "packageManager": "npm@11.6.2",
   "devDependencies": {
