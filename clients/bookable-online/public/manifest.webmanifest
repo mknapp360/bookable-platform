@@ -1,0 +1,25 @@
+{
+  "name": "Bookable QRCard",
+  "short_name": "QRCard",
+  "description": "Your digital business card — scan to share, install to keep.",
+  "start_url": "/qrcard",
+  "scope": "/qrcard",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#0f0c29",
+  "theme_color": "#863bff",
+  "icons": [
+    {
+      "src": "/icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}

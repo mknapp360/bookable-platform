@@ -1,0 +1,76 @@
+# Bookable
+
+> Bookable is an automated software consultancy and developer for small business owners and regulated professionals. We design and build AI-powered systems around how your business actually operates.
+
+## What Bookable does
+
+Bookable replaces spreadsheets, paperwork and manual admin with fully automated systems built around how each business actually operates. Every lead is captured, every client onboards themselves, every document and follow-up happens automatically.
+
+Pricing: £500 one-time setup fee. £75/month thereafter. No per-user fees. Cancel any time.
+
+Building automated business systems since 2019.
+
+## Who Bookable is for
+
+- Small business owners who need systems that just work
+- Mortgage brokers who need to manage leads, client documents and compliance without spreadsheets
+- Letting agents who need automated notifications and compliance tracking
+- Property investors and dealpackagers who need to track deals, leads and client documentation in one place
+- Equity release advisers who need a compliant, automated client journey
+- Solicitors and conveyancers who need configurable case management with automated document generation
+- Any regulated professional drowning in admin who needs a system that just works
+
+## Compliance
+
+FCA-compliant document storage, automated client communication records, and case tracking that meets Consumer Duty requirements — without manual input.
+
+## What gets built
+
+Each Bookable platform is custom-built (not off-the-shelf software) and covers the full business workflow from lead to completion:
+
+- Lead capture and qualification (every enquiry tracked automatically)
+- Client onboarding (forms, contracts and data collection handled without chasing)
+- Calendar-driven workflow (appointments trigger tasks, follow-ups and actions)
+- Payment tracking and invoicing (built into the pipeline)
+- Document and case management (compliance and client records generated and stored automatically)
+- Automated communications (emails, reminders and updates sent at the right time)
+- Xero integration and other third-party platform connections
+
+## How it works
+
+1. Discovery call — map how the business operates, where deals stall, what should be automated
+2. System design — full workflow from lead to completion, every connection planned
+3. Build and install — custom-built around the exact process, not a template
+4. Go live — typically within 2–4 weeks of the initial call
+
+## Service area
+
+South East England: Surrey, Kent, West Sussex, East Sussex, Hampshire, Berkshire, Hertfordshire, Essex, Buckinghamshire, Oxfordshire. Remote delivery available UK-wide.
+
+## Contact
+
+Website: https://www.bookable.online
+Phone: 07562 080026
+
+## Products
+
+Bookable builds and operates six standalone products, each targeting a specific niche where standard software doesn't fit:
+
+- **Bookable CRM** — Automated pipeline and case management for small business owners and regulated professionals. Tracks cases, chases clients, generates documents without manual intervention. Live since August 2020.
+- **Dining Steward** — Covers, events and member management for membership clubs and private dining operators. One system instead of cross-referenced spreadsheets. Live since September 2025.
+- **PropWorth** — Built in response to the Renters' Rights Act 2026. Letting agencies using PropWorth went from manually keeping up with notification cycles in spreadsheets to automated notifications and document prompts. Live since May 2026.
+- **Pagewright** — Planning, drafting and publishing workflow for authors and writing professionals. One tool instead of five. Live since April 2026.
+- **SafeReg** — Registration capture, compliance record storage and renewal reminders for organisations that need audit-ready records. No manual chasing. Live since November 2025.
+- **QR Card** — Always-current digital contact details shared instantly via QR code. Replaces out-of-date business cards. Live since May 2026.
+
+## Free Tools
+
+- **AI Search Audit** — Free tool that audits whether your website is ready for AI search engines like ChatGPT, Perplexity and Claude. Available at https://www.bookable.online/resources/ai-search-audit
+
+## Pages
+
+- https://www.bookable.online/ — Homepage: overview of what Bookable builds and how it works
+- https://www.bookable.online/products — Products: the six standalone products Bookable builds and operates
+- https://www.bookable.online/resources — Free tools for small businesses
+- https://www.bookable.online/resources/ai-search-audit — AI Search Audit: free AI search readiness tool
+- https://www.bookable.online/blog — Blog: automation advice for regulated professionals
