@@ -19,6 +19,7 @@ import { EnquiryDetailPage } from '@/pages/admin/enquiries/EnquiryDetailPage'
 import { TasksPage } from '@/pages/admin/tasks/TasksPage'
 import { CalendarPage } from '@/pages/admin/calendar/CalendarPage'
 import { DocumentsPage } from '@/pages/admin/documents/DocumentsPage'
+import { FormBuilderPage } from '@/pages/admin/documents/FormBuilderPage'
 import { SettingsPage } from '@/pages/admin/settings/SettingsPage'
 import { CrmConfigProvider } from '@/context/CrmConfigContext'
 import type { CrmConfig, ExtraRoute } from '@/context/CrmConfigContext'
@@ -71,6 +72,8 @@ export function createCrmApp(config: Partial<CrmConfig> = {}) {
                 <Route path="enquiries/:id"      element={<EnquiryDetailPage />} />
                 <Route path="tasks"              element={<TasksPage />} />
                 <Route path="calendar"           element={<CalendarPage />} />
+                <Route path="documents/forms/new"  element={<FormBuilderPage />} />
+                <Route path="documents/forms/:id/edit" element={<FormBuilderPage />} />
                 <Route path="documents"          element={<DocumentsPage />} />
                 <Route path="settings"           element={<SettingsPage />} />
                 {(config.extraRoutes ?? []).map((r: ExtraRoute) => (

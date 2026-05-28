@@ -36,6 +36,56 @@ export interface PipelineStage {
   created_at: string
 }
 
+// ─── Form Builder ─────────────────────────────────────────────────────────
+export type FormFieldType = 'text' | 'date' | 'message'
+
+export interface FormField {
+  id: string
+  label: string
+  type: FormFieldType
+  required: boolean
+  order: number
+  placeholder?: string
+}
+
+export interface FormPage {
+  id: string
+  title: string
+  order: number
+  fields: FormField[]
+}
+
+export interface FormSchema {
+  pages: FormPage[]
+}
+
+export interface FormTemplate {
+  id: string
+  tenant_id: string
+  name: string
+  schema: FormSchema
+  status: 'draft' | 'published'
+  created_by: string | null
+  created_at: string
+  updated_at: string
+}
+
+export interface FormSubmission {
+  id: string
+  tenant_id: string
+  form_template_id: string
+  contact_id: string | null
+  token: string
+  status: 'pending' | 'completed'
+  responses: Record<string, string>
+  sent_at: string | null
+  completed_at: string | null
+  created_at: string
+  // joined
+  contact?: Contact
+  form_template?: FormTemplate
+}
+
 // ─── Document Types ─────────────────────────────────────────────────────────
 export interface DocumentType {
   id: string
