@@ -203,6 +203,27 @@ export interface Task {
   pipeline_stage?: PipelineStage
 }
 
+// ─── Documents ────────────────────────────────────────────────────────────
+export type DocumentCategory = 'brochure'
+
+export interface Document {
+  id: string
+  tenant_id: string
+  name: string
+  type: DocumentCategory
+  file_name: string
+  file_path: string
+  file_size: number | null
+  mime_type: string | null
+  contact_id: string | null
+  case_id: string | null
+  uploaded_by: string | null
+  created_at: string
+  // joined
+  contact?: Contact
+  case?: Case
+}
+
 // ─── Contact Tags ─────────────────────────────────────────────────────────
 export interface ContactTag {
   id: string
