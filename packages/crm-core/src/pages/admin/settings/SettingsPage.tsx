@@ -10,10 +10,11 @@ import { usePipelineStages } from '@/hooks/usePipelineStages'
 import { useTenantIntegration } from '@/hooks/useTenantIntegration'
 import { supabase } from '@/lib/supabase'
 import { cn } from '@/lib/cn'
-import type { PipelineStage, DocumentType } from '@/types'
+import { useTags } from '@/hooks/useTags'
+import type { PipelineStage, DocumentType, ContactTag } from '@/types'
 
 // ─── Tabs ────────────────────────────────────────────────────────────────────
-type Tab = 'pipeline' | 'documents' | 'branding' | 'integrations' | 'email_formats' | 'widget' | 'account'
+type Tab = 'pipeline' | 'documents' | 'branding' | 'integrations' | 'email_formats' | 'widget' | 'account' | 'clients'
 
 // ─── Pipeline Stages Panel ───────────────────────────────────────────────────
 function PipelinePanel({ tenantId, initialConversionStageId }: { tenantId: string; initialConversionStageId: string | null }) {
@@ -346,6 +347,118 @@ function WidgetPanel({ tenantId }: { tenantId: string }) {
   )
 }
 
+// ─── Clients Panel (Tags) ────────────────────────────────────────────────────
+function ClientsPanel({ tenantId }: { tenantId: string }) {
+  const { tags, loading, addTag, updateTag, deleteTag } = useTags(tenantId)
+  const [addingNew, setAddingNew] = useState(false)
+  const [newName, setNewName] = useState('')
+  const [newColor, setNewColor] = useState('#6366f1')
+  const [saving, setSaving] = useState(false)
+  const [editId, setEditId] = useState<string | null>(null)
+  const [editName, setEditName] = useState('')
+  const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null)
+
+  async function handleAdd() {
+    if (!newName.trim()) return
+    setSaving(true)
+    await addTag(newName.trim(), newColor)
+    setNewName(''); setNewColor('#6366f1'); setAddingNew(false); setSaving(false)
+  }
+
+  async function handleSaveEdit(tag: ContactTag) {
+    if (!editName.trim()) return
+    setSaving(true)
+    await updateTag(tag.id, { name: editName.trim() })
+    setEditId(null); setSaving(false)
+  }
+
+  async function handleColorChange(tag: ContactTag, color: string) {
+    await updateTag(tag.id, { color })
+  }
+
+  async function handleDelete(id: string) {
+    await deleteTag(id)
+    setDeleteConfirm(null)
+  }
+
+  if (loading) return <p className="text-sm text-slate-400 py-4">Loading…</p>
+
+  return (
+    <div>
+      <h3 className="text-sm font-semibold text-slate-900 mb-1">Contact Tags</h3>
+      <p className="text-sm text-slate-500 mb-5">
+        Create tags to organise and categorise your contacts. Tags can be assigned from each contact's profile.
+      </p>
+      <div className="space-y-2">
+        {tags.map(tag => (
+          <div key={tag.id} className="flex items-center gap-3 bg-slate-50 border border-slate-200 rounded-lg px-4 py-3">
+            <label className="relative cursor-pointer shrink-0" title="Change colour">
+              <span className="block w-5 h-5 rounded-full border-2 border-white shadow" style={{ backgroundColor: tag.color }} />
+              <input type="color" defaultValue={tag.color} onBlur={e => handleColorChange(tag, e.target.value)} className="absolute inset-0 opacity-0 w-full h-full cursor-pointer" />
+            </label>
+            <div className="flex-1 min-w-0">
+              {editId === tag.id ? (
+                <input
+                  value={editName}
+                  onChange={e => setEditName(e.target.value)}
+                  onKeyDown={e => { if (e.key === 'Enter') handleSaveEdit(tag); if (e.key === 'Escape') setEditId(null) }}
+                  autoFocus
+                  className="w-full text-sm border border-blue-300 rounded px-2 py-0.5 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+              ) : (
+                <button onClick={() => { setEditId(tag.id); setEditName(tag.name) }} className="flex items-center gap-1.5 group text-left">
+                  <span className="text-sm font-medium text-slate-800">{tag.name}</span>
+                  <Pencil size={11} className="text-slate-300 group-hover:text-slate-500 transition-colors" />
+                </button>
+              )}
+            </div>
+            {editId === tag.id && (
+              <div className="flex items-center gap-1 shrink-0">
+                <button onClick={() => handleSaveEdit(tag)} disabled={saving} className="p-1 text-green-600 hover:text-green-700"><Check size={14} /></button>
+                <button onClick={() => setEditId(null)} className="p-1 text-slate-400 hover:text-slate-600"><X size={14} /></button>
+              </div>
+            )}
+            {editId !== tag.id && (
+              deleteConfirm === tag.id ? (
+                <div className="flex items-center gap-1 shrink-0">
+                  <span className="text-xs text-red-600 mr-1">Delete?</span>
+                  <button onClick={() => handleDelete(tag.id)} className="text-xs font-medium text-red-600 hover:text-red-700">Yes</button>
+                  <span className="text-slate-300">/</span>
+                  <button onClick={() => setDeleteConfirm(null)} className="text-xs font-medium text-slate-500 hover:text-slate-700">No</button>
+                </div>
+              ) : (
+                <button onClick={() => setDeleteConfirm(tag.id)} className="text-slate-300 hover:text-red-500 transition-colors shrink-0"><Trash2 size={14} /></button>
+              )
+            )}
+          </div>
+        ))}
+        {addingNew ? (
+          <div className="flex items-center gap-3 bg-blue-50 border border-blue-200 rounded-lg px-4 py-3">
+            <label className="relative cursor-pointer shrink-0">
+              <span className="block w-5 h-5 rounded-full border-2 border-white shadow" style={{ backgroundColor: newColor }} />
+              <input type="color" value={newColor} onChange={e => setNewColor(e.target.value)} className="absolute inset-0 opacity-0 w-full h-full cursor-pointer" />
+            </label>
+            <input
+              value={newName}
+              onChange={e => setNewName(e.target.value)}
+              onKeyDown={e => { if (e.key === 'Enter') handleAdd(); if (e.key === 'Escape') setAddingNew(false) }}
+              autoFocus
+              placeholder="Tag name…"
+              className="flex-1 text-sm border border-blue-300 rounded px-2 py-0.5 focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+            />
+            <button onClick={handleAdd} disabled={saving || !newName.trim()} className="flex items-center gap-1 px-3 py-1 bg-blue-600 hover:bg-blue-700 disabled:opacity-40 text-white text-xs font-medium rounded-lg transition-colors shrink-0"><Check size={12} /> Add</button>
+            <button onClick={() => setAddingNew(false)} className="text-slate-400 hover:text-slate-600 transition-colors shrink-0"><X size={14} /></button>
+          </div>
+        ) : (
+          <button onClick={() => setAddingNew(true)} className="flex items-center gap-2 w-full px-4 py-2.5 border border-dashed border-slate-300 rounded-lg text-sm text-slate-500 hover:border-slate-400 hover:text-slate-700 transition-colors">
+            <Plus size={14} /> Add tag
+          </button>
+        )}
+      </div>
+    </div>
+  )
+}
+
 // ─── Page ─────────────────────────────────────────────────────────────────────
 export function SettingsPage() {
   const { tenant } = useTenant()
@@ -355,6 +468,7 @@ export function SettingsPage() {
 
   const tabs: { id: Tab; label: string }[] = [
     { id: 'account',       label: 'Account'         },
+    { id: 'clients',       label: 'Clients'          },
     { id: 'pipeline',      label: 'Pipeline Stages'  },
     { id: 'documents',     label: 'Document Types'   },
     { id: 'branding',      label: 'Branding'         },
@@ -366,9 +480,7 @@ export function SettingsPage() {
   useEffect(() => {
     const params = new URLSearchParams(window.location.search)
     const tabParam = params.get('tab')
-    if (tabParam === 'integrations') setTab('integrations')
-    if (tabParam === 'widget') setTab('widget')
-    if (tabParam === 'account') setTab('account')
+    if (tabParam && tabs.some(t => t.id === tabParam)) setTab(tabParam as Tab)
   }, [])
 
   return (
@@ -381,6 +493,7 @@ export function SettingsPage() {
       <div className="bg-white rounded-xl border border-slate-200 p-6">
         {!tenantId ? (<p className="text-sm text-slate-400">Loading…</p>
         ) : tab === 'account' ? (<AccountPanel tenantId={tenantId} />
+        ) : tab === 'clients' ? (<ClientsPanel tenantId={tenantId} />
         ) : tab === 'pipeline' ? (<PipelinePanel tenantId={tenantId} initialConversionStageId={tenant?.case_conversion_stage_id ?? null} />
         ) : tab === 'documents' ? (<DocumentTypesPanel tenantId={tenantId} stages={stages} />
         ) : tab === 'integrations' ? (<IntegrationsPanel tenantId={tenantId} />

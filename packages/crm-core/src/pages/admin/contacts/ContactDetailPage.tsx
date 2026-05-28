@@ -13,9 +13,10 @@ import { ScheduleMeetingModal } from '@/components/crm/ScheduleMeetingModal'
 import { useTenant } from '@/hooks/useTenant'
 import { useContacts } from '@/hooks/useContacts'
 import { usePipelineStages } from '@/hooks/usePipelineStages'
+import { useTags, useContactTags } from '@/hooks/useTags'
 import { supabase } from '@/lib/supabase'
 import { cn } from '@/lib/cn'
-import type { Activity, Case, Contact } from '@/types'
+import type { Activity, Case, Contact, ContactTag } from '@/types'
 
 // Case conversion stage is now read from tenant.case_conversion_stage_id
 
@@ -284,6 +285,9 @@ export function ContactDetailPage() {
 
   const { contacts, loading, updateContact, updatePipelineStage } = useContacts(tenantId)
   const { stages } = usePipelineStages(tenantId)
+  const { tags: allTags } = useTags(tenantId)
+  const { tagIds, linkTag, unlinkTag } = useContactTags(id ?? null)
+  const [showTagPicker, setShowTagPicker] = useState(false)
 
   const contact = contacts.find(c => c.id === id)
 
@@ -697,6 +701,65 @@ export function ContactDetailPage() {
                 </div>
               )}
             </dl>
+          </div>
+
+          {/* Tags */}
+          <div className="bg-white rounded-xl border border-slate-200 p-5">
+            <h3 className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-3">Tags</h3>
+            <div className="flex flex-wrap gap-1.5 mb-3">
+              {allTags.filter(t => tagIds.includes(t.id)).map(tag => (
+                <span
+                  key={tag.id}
+                  className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium"
+                  style={{ backgroundColor: `${tag.color}20`, color: tag.color }}
+                >
+                  {tag.name}
+                  <button
+                    onClick={() => unlinkTag(tag.id)}
+                    className="hover:opacity-70 transition-opacity"
+                    title={`Remove ${tag.name}`}
+                  >
+                    <X size={10} />
+                  </button>
+                </span>
+              ))}
+              {tagIds.length === 0 && !showTagPicker && (
+                <span className="text-xs text-slate-400">No tags</span>
+              )}
+            </div>
+            {showTagPicker ? (
+              <div className="space-y-1.5">
+                {allTags.filter(t => !tagIds.includes(t.id)).length === 0 ? (
+                  <p className="text-xs text-slate-400">
+                    {allTags.length === 0 ? 'No tags created yet. Add them in Settings → Clients.' : 'All tags assigned.'}
+                  </p>
+                ) : (
+                  allTags.filter(t => !tagIds.includes(t.id)).map(tag => (
+                    <button
+                      key={tag.id}
+                      onClick={() => linkTag(tag.id)}
+                      className="flex items-center gap-2 w-full text-left px-2 py-1.5 rounded-lg hover:bg-slate-50 transition-colors"
+                    >
+                      <span className="w-3 h-3 rounded-full shrink-0" style={{ backgroundColor: tag.color }} />
+                      <span className="text-xs text-slate-700">{tag.name}</span>
+                    </button>
+                  ))
+                )}
+                <button
+                  onClick={() => setShowTagPicker(false)}
+                  className="text-xs text-slate-400 hover:text-slate-600 mt-1"
+                >
+                  Done
+                </button>
+              </div>
+            ) : (
+              <button
+                onClick={() => setShowTagPicker(true)}
+                className="flex items-center gap-1 text-xs text-blue-600 hover:text-blue-700 transition-colors"
+              >
+                <Tag size={11} /> Manage tags
+              </button>
+            )}
           </div>
         </div>
       </div>

@@ -49,12 +49,13 @@ Deno.serve(async (req: Request) => {
     // Parse sender email from "from" field
     // Formats: "Name <email@example.com>" or "email@example.com"
     const emailMatch = from.match(/<([^>]+)>/) ?? from.match(/([^\s<]+@[^\s>]+)/);
-    const senderEmail = emailMatch ? emailMatch[1].toLowerCase() : from.toLowerCase();
+    let senderEmail = emailMatch ? emailMatch[1].toLowerCase() : from.toLowerCase();
     const nameMatch = from.match(/^"?([^"<]+)"?\s*</);
-    const senderName = nameMatch ? nameMatch[1].trim() : null;
+    let senderName = nameMatch ? nameMatch[1].trim() : null;
 
     // Match sender to a contact
-    const { data: contact } = await supabase
+    let contact = null;
+    const { data: directMatch } = await supabase
       .from('contacts')
       .select('id')
       .eq('tenant_id', tenantId)
@@ -62,6 +63,33 @@ Deno.serve(async (req: Request) => {
       .order('updated_at', { ascending: false })
       .limit(1)
       .maybeSingle();
+    contact = directMatch;
+
+    // If no direct match, this might be a forwarded email — try to extract original sender
+    if (!contact && (subject.startsWith('FW:') || subject.startsWith('Fwd:') || text.includes('From:'))) {
+      // Look for original "From:" in forwarded body (Outlook and Gmail patterns)
+      const fwdFromMatch = text.match(/From:\s*([^\r\n]+)/i);
+      if (fwdFromMatch) {
+        const fwdEmailMatch = fwdFromMatch[1].match(/<([^>]+)>/) ?? fwdFromMatch[1].match(/([^\s<]+@[^\s>]+)/);
+        if (fwdEmailMatch) {
+          const originalEmail = fwdEmailMatch[1].toLowerCase();
+          const fwdNameMatch = fwdFromMatch[1].match(/^"?([^"<]+)"?\s*</);
+          const { data: fwdMatch } = await supabase
+            .from('contacts')
+            .select('id')
+            .eq('tenant_id', tenantId)
+            .ilike('email', originalEmail)
+            .order('updated_at', { ascending: false })
+            .limit(1)
+            .maybeSingle();
+          if (fwdMatch) {
+            contact = fwdMatch;
+            senderEmail = originalEmail;
+            senderName = fwdNameMatch ? fwdNameMatch[1].trim() : senderName;
+          }
+        }
+      }
+    }
 
     // Extract Message-ID and In-Reply-To from email headers
     const messageIdMatch = headers.match(/^Message-ID:\s*(.+)$/mi);
@@ -80,7 +108,7 @@ Deno.serve(async (req: Request) => {
         from_name:   senderName,
         to_email:    to,
         to_name:     null,
-        subject:     subject || null,
+        subject:     (subject || '').replace(/^(FW:|Fwd:)\s*/i, '') || null,
         body_text:   text || null,
         body_html:   html || null,
         message_id:  messageId,

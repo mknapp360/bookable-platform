@@ -1,9 +1,10 @@
-import { useState, useRef } from 'react'
+import { useState, useRef, useEffect, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Search, UserPlus, Phone, Mail, Upload, Download, CheckCircle2, AlertCircle, X } from 'lucide-react'
 import { useTenant } from '@/hooks/useTenant'
 import { useContacts } from '@/hooks/useContacts'
 import { usePipelineStages } from '@/hooks/usePipelineStages'
+import { useTags } from '@/hooks/useTags'
 import { ContactForm } from '@/components/crm/ContactForm'
 import { supabase } from '@/lib/supabase'
 import { cn } from '@/lib/cn'
@@ -73,9 +74,30 @@ export function ContactsPage() {
   const { contacts, loading, addContact, refetch } = useContacts(tenant?.id ?? null)
   const { stages } = usePipelineStages(tenant?.id ?? null)
 
+  const { tags: allTags } = useTags(tenant?.id ?? null)
+  const [contactTagMap, setContactTagMap] = useState<Record<string, string[]>>({})
+
+  const loadContactTags = useCallback(async () => {
+    if (!tenant?.id) return
+    const { data } = await supabase
+      .from('contact_tag_links')
+      .select('contact_id, tag_id')
+    if (data) {
+      const map: Record<string, string[]> = {}
+      for (const row of data as { contact_id: string; tag_id: string }[]) {
+        if (!map[row.contact_id]) map[row.contact_id] = []
+        map[row.contact_id].push(row.tag_id)
+      }
+      setContactTagMap(map)
+    }
+  }, [tenant?.id])
+
+  useEffect(() => { loadContactTags() }, [loadContactTags])
+
   const [search, setSearch]             = useState('')
   const [statusFilter, setStatusFilter] = useState<ContactStatus | 'all'>('all')
   const [stageFilter, setStageFilter]   = useState<string>('all')
+  const [tagFilter, setTagFilter]       = useState<string>('all')
   const [showForm, setShowForm]         = useState(false)
   const [importing, setImporting]       = useState(false)
   const [importResult, setImportResult] = useState<{ success: number; skipped: number; errors: string[] } | null>(null)
@@ -130,7 +152,12 @@ export function ContactsPage() {
       : stageFilter === 'none'
         ? !c.pipeline_stage_id
         : c.pipeline_stage_id === stageFilter
-    return matchSearch && matchStatus && matchStage
+    const matchTag = tagFilter === 'all'
+      ? true
+      : tagFilter === 'none'
+        ? !contactTagMap[c.id] || contactTagMap[c.id].length === 0
+        : (contactTagMap[c.id] ?? []).includes(tagFilter)
+    return matchSearch && matchStatus && matchStage && matchTag
   })
 
   return (
@@ -215,6 +242,21 @@ export function ContactsPage() {
             ))}
           </select>
         )}
+
+        {/* Tag filter */}
+        {allTags.length > 0 && (
+          <select
+            value={tagFilter}
+            onChange={e => setTagFilter(e.target.value)}
+            className="text-xs border border-slate-200 rounded-lg px-3 py-1.5 text-slate-600 focus:outline-none focus:ring-2 focus:ring-blue-500"
+          >
+            <option value="all">All tags</option>
+            <option value="none">No tags</option>
+            {allTags.map(t => (
+              <option key={t.id} value={t.id}>{t.name}</option>
+            ))}
+          </select>
+        )}
       </div>
 
       {/* Import result banner */}
@@ -249,6 +291,7 @@ export function ContactsPage() {
                 <th className="text-left text-xs font-medium text-slate-500 px-5 py-3">Contact</th>
                 <th className="text-left text-xs font-medium text-slate-500 px-5 py-3">Stage</th>
                 <th className="text-left text-xs font-medium text-slate-500 px-5 py-3">Status</th>
+                <th className="text-left text-xs font-medium text-slate-500 px-5 py-3">Tags</th>
                 <th className="text-left text-xs font-medium text-slate-500 px-5 py-3">Source</th>
                 <th className="text-left text-xs font-medium text-slate-500 px-5 py-3">Added</th>
               </tr>
@@ -303,6 +346,22 @@ export function ContactsPage() {
                     <span className={cn('px-2 py-0.5 rounded-full text-xs font-medium capitalize', statusColour[contact.status])}>
                       {contact.status}
                     </span>
+                  </td>
+                  <td className="px-5 py-3.5">
+                    <div className="flex flex-wrap gap-1">
+                      {(contactTagMap[contact.id] ?? []).map(tagId => {
+                        const tag = allTags.find(t => t.id === tagId)
+                        return tag ? (
+                          <span
+                            key={tag.id}
+                            className="px-1.5 py-0.5 rounded-full text-[10px] font-medium"
+                            style={{ backgroundColor: `${tag.color}20`, color: tag.color }}
+                          >
+                            {tag.name}
+                          </span>
+                        ) : null
+                      })}
+                    </div>
                   </td>
                   <td className="px-5 py-3.5 text-xs text-slate-500 capitalize">{contact.source}</td>
                   <td className="px-5 py-3.5 text-xs text-slate-500">

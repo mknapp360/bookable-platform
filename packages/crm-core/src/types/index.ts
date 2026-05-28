@@ -203,5 +203,23 @@ export interface Task {
   pipeline_stage?: PipelineStage
 }
 
+// ─── Contact Tags ─────────────────────────────────────────────────────────
+export interface ContactTag {
+  id: string
+  tenant_id: string
+  name: string
+  color: string
+  created_at: string
+}
+
+export interface ContactTagLink {
+  id: string
+  contact_id: string
+  tag_id: string
+  created_at: string
+  // joined
+  tag?: ContactTag
+}
+
 // ─── Utility ────────────────────────────────────────────────────────────────
 export type DatabaseRow<T> = T & { id: string; created_at: string }
