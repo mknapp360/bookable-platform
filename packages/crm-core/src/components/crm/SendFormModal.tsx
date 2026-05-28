@@ -58,9 +58,8 @@ export function SendFormModal({
     if (submission) {
       const supabaseUrl = import.meta.env.VITE_SUPABASE_URL as string
       const link = `${supabaseUrl}/functions/v1/serve-form?token=${submission.token}`
-      setSentLink(link)
 
-      // Send email with the form link
+      // Send email BEFORE updating UI state — otherwise parent re-render can unmount this modal
       try {
         const { data: { session } } = await supabase.auth.getSession()
         await fetch(`${supabaseUrl}/functions/v1/send-email`, {
@@ -79,9 +78,10 @@ export function SendFormModal({
           }),
         })
       } catch {
-        // Email send failed but submission was created — don't block
         console.error('Failed to send form email')
       }
+
+      setSentLink(link)
     }
 
     setSending(false)
