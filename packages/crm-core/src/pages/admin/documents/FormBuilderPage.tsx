@@ -3,7 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom'
 import {
   ArrowLeft, Plus, Trash2, ChevronUp, ChevronDown,
   Check, Save, FileText, Type, Calendar, MessageSquare,
-  Mail, ChevronRight, ChevronLeft
+  Mail, ChevronRight, ChevronLeft, ListFilter, X
 } from 'lucide-react'
 import { useTenant } from '@/hooks/useTenant'
 import { useFormTemplates } from '@/hooks/useFormTemplates'
@@ -15,6 +15,7 @@ const FIELD_TYPES: { value: FormFieldType; label: string; icon: typeof Type }[] 
   { value: 'email', label: 'Email', icon: Mail },
   { value: 'date', label: 'Date', icon: Calendar },
   { value: 'message', label: 'Message', icon: MessageSquare },
+  { value: 'dropdown', label: 'Dropdown', icon: ListFilter },
 ]
 
 function newId(): string {
@@ -50,44 +51,101 @@ function FieldRow({
   const fieldType = FIELD_TYPES.find(ft => ft.value === field.type)
   const Icon = fieldType?.icon ?? Type
 
+  const isDropdown = field.type === 'dropdown'
+  const options = field.options ?? []
+
+  function handleTypeChange(newType: FormFieldType) {
+    const updates: Partial<FormField> = { type: newType }
+    if (newType === 'dropdown' && (!field.options || field.options.length === 0)) {
+      updates.options = ['Option 1']
+    }
+    onUpdate(updates)
+  }
+
+  function addOption() {
+    onUpdate({ options: [...options, `Option ${options.length + 1}`] })
+  }
+
+  function updateOption(idx: number, value: string) {
+    const next = [...options]
+    next[idx] = value
+    onUpdate({ options: next })
+  }
+
+  function removeOption(idx: number) {
+    onUpdate({ options: options.filter((_, i) => i !== idx) })
+  }
+
   return (
-    <div className="flex items-center gap-3 bg-white border border-slate-200 rounded-lg px-4 py-2.5">
-      <Icon size={14} className="text-slate-400 shrink-0" />
-      <input
-        value={field.label}
-        onChange={e => onUpdate({ label: e.target.value })}
-        placeholder="Field label…"
-        className="flex-1 text-sm border-0 outline-none bg-transparent text-slate-800 placeholder:text-slate-300"
-      />
-      <select
-        value={field.type}
-        onChange={e => onUpdate({ type: e.target.value as FormFieldType })}
-        className="text-xs border border-slate-200 rounded-lg px-2 py-1 text-slate-600 focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white shrink-0"
-      >
-        {FIELD_TYPES.map(ft => (
-          <option key={ft.value} value={ft.value}>{ft.label}</option>
-        ))}
-      </select>
-      <label className="flex items-center gap-1.5 shrink-0 cursor-pointer">
+    <div className="bg-white border border-slate-200 rounded-lg px-4 py-2.5 space-y-2">
+      <div className="flex items-center gap-3">
+        <Icon size={14} className="text-slate-400 shrink-0" />
         <input
-          type="checkbox"
-          checked={field.required}
-          onChange={e => onUpdate({ required: e.target.checked })}
-          className="w-3.5 h-3.5 rounded border-slate-300 text-blue-600 focus:ring-blue-500"
+          value={field.label}
+          onChange={e => onUpdate({ label: e.target.value })}
+          placeholder="Field label…"
+          className="flex-1 text-sm border-0 outline-none bg-transparent text-slate-800 placeholder:text-slate-300"
         />
-        <span className="text-xs text-slate-500">Required</span>
-      </label>
-      <div className="flex flex-col shrink-0">
-        <button onClick={onMoveUp} disabled={isFirst} className="disabled:opacity-20 text-slate-400 hover:text-slate-600 transition-colors">
-          <ChevronUp size={13} />
-        </button>
-        <button onClick={onMoveDown} disabled={isLast} className="disabled:opacity-20 text-slate-400 hover:text-slate-600 transition-colors">
-          <ChevronDown size={13} />
+        <select
+          value={field.type}
+          onChange={e => handleTypeChange(e.target.value as FormFieldType)}
+          className="text-xs border border-slate-200 rounded-lg px-2 py-1 text-slate-600 focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white shrink-0"
+        >
+          {FIELD_TYPES.map(ft => (
+            <option key={ft.value} value={ft.value}>{ft.label}</option>
+          ))}
+        </select>
+        <label className="flex items-center gap-1.5 shrink-0 cursor-pointer">
+          <input
+            type="checkbox"
+            checked={field.required}
+            onChange={e => onUpdate({ required: e.target.checked })}
+            className="w-3.5 h-3.5 rounded border-slate-300 text-blue-600 focus:ring-blue-500"
+          />
+          <span className="text-xs text-slate-500">Required</span>
+        </label>
+        <div className="flex flex-col shrink-0">
+          <button onClick={onMoveUp} disabled={isFirst} className="disabled:opacity-20 text-slate-400 hover:text-slate-600 transition-colors">
+            <ChevronUp size={13} />
+          </button>
+          <button onClick={onMoveDown} disabled={isLast} className="disabled:opacity-20 text-slate-400 hover:text-slate-600 transition-colors">
+            <ChevronDown size={13} />
+          </button>
+        </div>
+        <button onClick={onDelete} className="text-slate-300 hover:text-red-500 transition-colors shrink-0">
+          <Trash2 size={13} />
         </button>
       </div>
-      <button onClick={onDelete} className="text-slate-300 hover:text-red-500 transition-colors shrink-0">
-        <Trash2 size={13} />
-      </button>
+
+      {/* Dropdown options editor */}
+      {isDropdown && (
+        <div className="pl-7 space-y-1.5">
+          {options.map((opt, idx) => (
+            <div key={idx} className="flex items-center gap-2">
+              <span className="text-xs text-slate-400 w-4 text-right shrink-0">{idx + 1}.</span>
+              <input
+                value={opt}
+                onChange={e => updateOption(idx, e.target.value)}
+                className="flex-1 text-xs border border-slate-200 rounded px-2 py-1 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                placeholder="Option label…"
+              />
+              <button
+                onClick={() => removeOption(idx)}
+                disabled={options.length <= 1}
+                className="text-slate-300 hover:text-red-500 disabled:opacity-20 transition-colors shrink-0"
+              >
+                <X size={11} />
+              </button>
+            </div>
+          ))}
+          <button
+            onClick={addOption}
+            className="flex items-center gap-1 text-[11px] text-blue-600 hover:text-blue-700 font-medium transition-colors"
+          >
+            <Plus size={10} /> Add option
+          </button>
+        </div>
+      )}
     </div>
   )
 }
@@ -243,6 +301,16 @@ function FormPreview({ name, schema }: { name: string; schema: FormSchema }) {
                       placeholder={field.placeholder || 'name@example.com'}
                       className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm bg-slate-50 text-slate-400"
                     />
+                  ) : field.type === 'dropdown' ? (
+                    <select
+                      disabled
+                      className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm bg-slate-50 text-slate-400"
+                    >
+                      <option value="">Select…</option>
+                      {(field.options ?? []).map((opt, i) => (
+                        <option key={i} value={opt}>{opt}</option>
+                      ))}
+                    </select>
                   ) : (
                     <input
                       type="text"

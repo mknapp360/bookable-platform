@@ -37,7 +37,7 @@ export interface PipelineStage {
 }
 
 // ─── Form Builder ─────────────────────────────────────────────────────────
-export type FormFieldType = 'text' | 'email' | 'date' | 'message'
+export type FormFieldType = 'text' | 'email' | 'date' | 'message' | 'dropdown'
 
 export interface FormField {
   id: string
@@ -46,6 +46,7 @@ export interface FormField {
   required: boolean
   order: number
   placeholder?: string
+  options?: string[]
 }
 
 export interface FormPage {
