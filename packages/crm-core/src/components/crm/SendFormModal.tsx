@@ -2,25 +2,28 @@ import { useState } from 'react'
 import { Send, X, Copy, Check, AlertCircle } from 'lucide-react'
 import { useContacts } from '@/hooks/useContacts'
 import { useFormSubmissions } from '@/hooks/useFormSubmissions'
+import { supabase } from '@/lib/supabase'
 import { cn } from '@/lib/cn'
 
 export function SendFormModal({
   tenantId,
   formTemplateId,
   formName,
+  preselectedContactId,
   onClose,
   onSent,
 }: {
   tenantId: string
   formTemplateId: string
   formName: string
+  preselectedContactId?: string
   onClose: () => void
   onSent?: () => void
 }) {
   const { contacts } = useContacts(tenantId)
   const { sendToContact } = useFormSubmissions(tenantId, formTemplateId)
 
-  const [selectedContactId, setSelectedContactId] = useState('')
+  const [selectedContactId, setSelectedContactId] = useState(preselectedContactId ?? '')
   const [search, setSearch] = useState('')
   const [sending, setSending] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -38,9 +41,16 @@ export function SendFormModal({
     setSending(true)
     setError(null)
 
-    const { submission, error } = await sendToContact(formTemplateId, selectedContactId)
-    if (error) {
-      setError(error)
+    const selectedContact = contacts.find(c => c.id === selectedContactId)
+    if (!selectedContact?.email) {
+      setError('This contact has no email address')
+      setSending(false)
+      return
+    }
+
+    const { submission, error: subError } = await sendToContact(formTemplateId, selectedContactId)
+    if (subError) {
+      setError(subError)
       setSending(false)
       return
     }
@@ -49,6 +59,29 @@ export function SendFormModal({
       const supabaseUrl = import.meta.env.VITE_SUPABASE_URL as string
       const link = `${supabaseUrl}/functions/v1/serve-form?token=${submission.token}`
       setSentLink(link)
+
+      // Send email with the form link
+      try {
+        const { data: { session } } = await supabase.auth.getSession()
+        await fetch(`${supabaseUrl}/functions/v1/send-email`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${session?.access_token ?? ''}`,
+          },
+          body: JSON.stringify({
+            tenant_id: tenantId,
+            contact_id: selectedContactId,
+            to_email: selectedContact.email,
+            to_name: `${selectedContact.first_name} ${selectedContact.last_name}`,
+            subject: formName,
+            body: `Hi ${selectedContact.first_name},\n\nPlease complete the following form:\n\n${link}\n\nKind regards`,
+          }),
+        })
+      } catch {
+        // Email send failed but submission was created — don't block
+        console.error('Failed to send form email')
+      }
     }
 
     setSending(false)
@@ -82,7 +115,7 @@ export function SendFormModal({
         {/* Body */}
         <div className="flex-1 overflow-y-auto px-6 py-5 space-y-4">
           <p className="text-xs text-slate-500">
-            Send <span className="font-medium text-slate-700">{formName}</span> to a contact. They'll receive a unique link to fill out the form.
+            Send <span className="font-medium text-slate-700">{formName}</span> to a contact. They'll receive an email with a link to fill out the form.
           </p>
 
           {sentLink ? (
@@ -90,7 +123,7 @@ export function SendFormModal({
             <div className="space-y-3">
               <div className="flex items-center gap-2 text-sm text-green-700 bg-green-50 border border-green-200 rounded-lg px-3 py-2">
                 <Check size={14} className="text-green-500 shrink-0" />
-                Form sent to {selectedContact?.first_name} {selectedContact?.last_name}
+                Form emailed to {selectedContact?.first_name} {selectedContact?.last_name}
               </div>
               <div>
                 <label className="block text-xs font-medium text-slate-700 mb-1.5">Form link</label>

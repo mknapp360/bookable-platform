@@ -300,6 +300,7 @@ export function ContactDetailPage() {
   const [docAccordion, setDocAccordion] = useState<Record<string, boolean>>({})
   const [sendFormId, setSendFormId] = useState<string | null>(null)
   const [brochureSends, setBrochureSends] = useState<Record<string, string>>({}) // docId → sent_at
+  const [sendingDoc, setSendingDoc] = useState<string | null>(null)
 
   // Load brochure send records for this contact
   useEffect(() => {
@@ -317,15 +318,53 @@ export function ContactDetailPage() {
       })
   }, [tenantId, id])
 
-  async function handleSendBrochure(docId: string) {
-    if (!tenantId || !id) return
-    await supabase.from('document_sends').upsert({
-      tenant_id: tenantId,
-      document_id: docId,
-      contact_id: id,
-      sent_at: new Date().toISOString(),
-    }, { onConflict: 'document_id,contact_id' })
-    setBrochureSends(prev => ({ ...prev, [docId]: new Date().toISOString() }))
+  async function handleSendBrochure(doc: { id: string; name: string; file_path: string; file_name: string; mime_type: string | null }) {
+    if (!tenantId || !id || !contact) return
+    if (!contact.email) return
+    setSendingDoc(doc.id)
+
+    try {
+      // Download file from storage and convert to base64
+      const { data: fileData } = await supabase.storage.from('documents').download(doc.file_path)
+      if (!fileData) { setSendingDoc(null); return }
+      const buffer = await fileData.arrayBuffer()
+      const base64 = btoa(String.fromCharCode(...new Uint8Array(buffer)))
+
+      // Send email with attachment
+      const { data: { session } } = await supabase.auth.getSession()
+      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL as string
+      await fetch(`${supabaseUrl}/functions/v1/send-email`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session?.access_token ?? ''}`,
+        },
+        body: JSON.stringify({
+          tenant_id: tenantId,
+          contact_id: id,
+          to_email: contact.email,
+          to_name: `${contact.first_name} ${contact.last_name}`,
+          subject: doc.name,
+          body: `Hi ${contact.first_name},\n\nPlease find the attached document: ${doc.name}.\n\nKind regards`,
+          attachments: [{
+            filename: doc.file_name,
+            content: base64,
+            type: doc.mime_type || 'application/octet-stream',
+          }],
+        }),
+      })
+
+      // Record the send
+      await supabase.from('document_sends').upsert({
+        tenant_id: tenantId,
+        document_id: doc.id,
+        contact_id: id,
+        sent_at: new Date().toISOString(),
+      }, { onConflict: 'document_id,contact_id' })
+      setBrochureSends(prev => ({ ...prev, [doc.id]: new Date().toISOString() }))
+    } finally {
+      setSendingDoc(null)
+    }
   }
 
   function toggleAccordion(key: string) {
@@ -831,6 +870,7 @@ export function ContactDetailPage() {
                       <div className="pl-5 pb-2 space-y-1">
                         {documents.map(doc => {
                           const sentAt = brochureSends[doc.id]
+                          const isSending = sendingDoc === doc.id
                           return (
                             <div key={doc.id} className="flex items-center gap-2 py-1.5">
                               <span className="text-xs text-slate-700 flex-1 truncate">{doc.name}</span>
@@ -840,10 +880,12 @@ export function ContactDetailPage() {
                                 </span>
                               ) : (
                                 <button
-                                  onClick={() => handleSendBrochure(doc.id)}
-                                  className="flex items-center gap-1 text-[11px] text-blue-600 hover:text-blue-700 font-medium shrink-0 transition-colors"
+                                  onClick={() => handleSendBrochure(doc)}
+                                  disabled={isSending || !contact?.email}
+                                  title={!contact?.email ? 'No email address' : undefined}
+                                  className="flex items-center gap-1 text-[11px] text-blue-600 hover:text-blue-700 font-medium shrink-0 transition-colors disabled:opacity-40"
                                 >
-                                  <Send size={10} /> Send
+                                  <Send size={10} /> {isSending ? 'Sending…' : 'Send'}
                                 </button>
                               )}
                             </div>
@@ -931,6 +973,7 @@ export function ContactDetailPage() {
             tenantId={tenantId}
             formTemplateId={tmpl.id}
             formName={tmpl.name}
+            preselectedContactId={id}
             onClose={() => setSendFormId(null)}
             onSent={() => refetchSubmissions()}
           />

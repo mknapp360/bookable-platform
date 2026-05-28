@@ -5,6 +5,12 @@ const SUPABASE_ANON_KEY        = Deno.env.get('SUPABASE_ANON_KEY')!
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
 const SENDGRID_API_KEY         = Deno.env.get('SENDGRID_API_KEY')!
 
+interface Attachment {
+  filename: string
+  content:  string   // base64-encoded
+  type?:    string   // MIME type
+}
+
 interface SendEmailPayload {
   tenant_id:    string
   contact_id:   string
@@ -13,6 +19,7 @@ interface SendEmailPayload {
   subject:      string
   body:         string
   in_reply_to?: string
+  attachments?: Attachment[]
 }
 
 const corsHeaders = {
@@ -35,7 +42,7 @@ Deno.serve(async (req: Request) => {
     }
 
     const payload: SendEmailPayload = await req.json()
-    const { tenant_id, contact_id, to_email, to_name, subject, body, in_reply_to } = payload
+    const { tenant_id, contact_id, to_email, to_name, subject, body, in_reply_to, attachments } = payload
 
     if (!tenant_id || !to_email || !subject || !body) {
       return new Response(
@@ -127,6 +134,14 @@ Deno.serve(async (req: Request) => {
         subject,
         content: [{ type: 'text/plain', value: body }],
         headers: sgHeaders,
+        ...(attachments && attachments.length > 0 ? {
+          attachments: attachments.map(att => ({
+            filename: att.filename,
+            content: att.content,
+            type: att.type || 'application/octet-stream',
+            disposition: 'attachment',
+          })),
+        } : {}),
       }),
     })
 
