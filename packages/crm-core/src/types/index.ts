@@ -37,7 +37,7 @@ export interface PipelineStage {
 }
 
 // ─── Form Builder ─────────────────────────────────────────────────────────
-export type FormFieldType = 'text' | 'date' | 'message'
+export type FormFieldType = 'text' | 'email' | 'date' | 'message'
 
 export interface FormField {
   id: string

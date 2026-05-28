@@ -2,7 +2,8 @@ import { useState, useEffect, useCallback } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import {
   ArrowLeft, Plus, Trash2, ChevronUp, ChevronDown,
-  Check, Save, FileText, Type, Calendar, MessageSquare
+  Check, Save, FileText, Type, Calendar, MessageSquare,
+  Mail, ChevronRight, ChevronLeft
 } from 'lucide-react'
 import { useTenant } from '@/hooks/useTenant'
 import { useFormTemplates } from '@/hooks/useFormTemplates'
@@ -11,6 +12,7 @@ import type { FormSchema, FormPage, FormField, FormFieldType } from '@/types'
 
 const FIELD_TYPES: { value: FormFieldType; label: string; icon: typeof Type }[] = [
   { value: 'text', label: 'Text', icon: Type },
+  { value: 'email', label: 'Email', icon: Mail },
   { value: 'date', label: 'Date', icon: Calendar },
   { value: 'message', label: 'Message', icon: MessageSquare },
 ]
@@ -175,6 +177,133 @@ function PageCard({
   )
 }
 
+// ─── Live Preview ────────────────────────────────────────────────────────────
+function FormPreview({ name, schema }: { name: string; schema: FormSchema }) {
+  const sortedPages = [...schema.pages].sort((a, b) => a.order - b.order)
+  const [previewPage, setPreviewPage] = useState(0)
+
+  // Clamp preview page if pages are removed
+  const clampedPage = Math.min(previewPage, Math.max(sortedPages.length - 1, 0))
+  if (clampedPage !== previewPage) setPreviewPage(clampedPage)
+
+  const currentPage = sortedPages[clampedPage]
+  const totalPages = sortedPages.length
+
+  return (
+    <div className="bg-white rounded-xl border border-slate-200 shadow-sm sticky top-8">
+      {/* Preview header */}
+      <div className="px-5 py-3 border-b border-slate-100">
+        <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider">Live Preview</p>
+      </div>
+
+      {/* Form content */}
+      <div className="p-5">
+        {/* Form title */}
+        <h3 className="text-base font-semibold text-slate-900 mb-1">
+          {name || 'Untitled Form'}
+        </h3>
+        {totalPages > 1 && (
+          <p className="text-xs text-slate-400 mb-4">Page {clampedPage + 1} of {totalPages}</p>
+        )}
+
+        {!currentPage ? (
+          <p className="text-xs text-slate-400 italic py-6 text-center">Add a page to get started</p>
+        ) : (
+          <>
+            {/* Page title */}
+            {currentPage.title && (
+              <p className="text-sm font-medium text-slate-700 mb-4">{currentPage.title}</p>
+            )}
+
+            {/* Fields */}
+            <div className="space-y-4">
+              {[...currentPage.fields].sort((a, b) => a.order - b.order).map(field => (
+                <div key={field.id}>
+                  <label className="block text-xs font-medium text-slate-700 mb-1">
+                    {field.label || 'Untitled field'}
+                    {field.required && <span className="text-red-500 ml-0.5">*</span>}
+                  </label>
+                  {field.type === 'message' ? (
+                    <textarea
+                      disabled
+                      rows={3}
+                      placeholder={field.placeholder || `Enter ${field.label.toLowerCase() || 'text'}…`}
+                      className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm bg-slate-50 text-slate-400 resize-none"
+                    />
+                  ) : field.type === 'date' ? (
+                    <input
+                      type="date"
+                      disabled
+                      className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm bg-slate-50 text-slate-400"
+                    />
+                  ) : field.type === 'email' ? (
+                    <input
+                      type="email"
+                      disabled
+                      placeholder={field.placeholder || 'name@example.com'}
+                      className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm bg-slate-50 text-slate-400"
+                    />
+                  ) : (
+                    <input
+                      type="text"
+                      disabled
+                      placeholder={field.placeholder || `Enter ${field.label.toLowerCase() || 'text'}…`}
+                      className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm bg-slate-50 text-slate-400"
+                    />
+                  )}
+                </div>
+              ))}
+              {currentPage.fields.length === 0 && (
+                <p className="text-xs text-slate-400 italic py-4 text-center">No fields on this page yet</p>
+              )}
+            </div>
+
+            {/* Navigation buttons */}
+            <div className="flex items-center justify-between mt-6 pt-4 border-t border-slate-100">
+              {totalPages > 1 ? (
+                <>
+                  <button
+                    onClick={() => setPreviewPage(p => Math.max(0, p - 1))}
+                    disabled={clampedPage === 0}
+                    className="flex items-center gap-1 text-xs font-medium text-slate-500 disabled:opacity-30 hover:text-slate-700 transition-colors"
+                  >
+                    <ChevronLeft size={12} /> Previous
+                  </button>
+                  {clampedPage < totalPages - 1 ? (
+                    <button
+                      onClick={() => setPreviewPage(p => Math.min(totalPages - 1, p + 1))}
+                      className="flex items-center gap-1 px-4 py-1.5 bg-blue-600 text-white text-xs font-medium rounded-lg"
+                    >
+                      Next <ChevronRight size={12} />
+                    </button>
+                  ) : (
+                    <button
+                      disabled
+                      className="px-4 py-1.5 bg-blue-600 text-white text-xs font-medium rounded-lg opacity-80"
+                    >
+                      Submit
+                    </button>
+                  )}
+                </>
+              ) : (
+                <>
+                  <div />
+                  <button
+                    disabled
+                    className="px-4 py-1.5 bg-blue-600 text-white text-xs font-medium rounded-lg opacity-80"
+                  >
+                    Submit
+                  </button>
+                </>
+              )}
+            </div>
+          </>
+        )}
+      </div>
+    </div>
+  )
+}
+
 // ─── Page ─────────────────────────────────────────────────────────────────────
 export function FormBuilderPage() {
   const { id } = useParams<{ id: string }>()
@@ -308,7 +437,7 @@ export function FormBuilderPage() {
   const sortedPages = [...schema.pages].sort((a, b) => a.order - b.order)
 
   return (
-    <div className="p-8 max-w-3xl">
+    <div className="p-8">
       {/* Header */}
       <div className="flex items-center justify-between mb-6">
         <button
@@ -344,46 +473,57 @@ export function FormBuilderPage() {
         </div>
       </div>
 
-      {/* Form name */}
-      <div className="mb-6">
-        <label className="block text-xs font-medium text-slate-700 mb-1.5">Form name</label>
-        <input
-          value={name}
-          onChange={e => { setName(e.target.value); setSaved(false) }}
-          placeholder="e.g. Client Onboarding Questionnaire"
-          className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-        />
-      </div>
+      {/* Two-column layout: builder + preview */}
+      <div className="grid grid-cols-5 gap-6">
+        {/* Left: Builder (3/5) */}
+        <div className="col-span-3">
+          {/* Form name */}
+          <div className="mb-6">
+            <label className="block text-xs font-medium text-slate-700 mb-1.5">Form name</label>
+            <input
+              value={name}
+              onChange={e => { setName(e.target.value); setSaved(false) }}
+              placeholder="e.g. Client Onboarding Questionnaire"
+              className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+            />
+          </div>
 
-      {/* Pages */}
-      <div className="space-y-5">
-        {sortedPages.map((page, idx) => (
-          <PageCard
-            key={page.id}
-            page={page}
-            pageIndex={idx}
-            isFirst={idx === 0}
-            isLast={idx === sortedPages.length - 1}
-            onUpdatePage={updates => updatePage(page.id, updates)}
-            onDeletePage={() => deletePage(page.id)}
-            onMovePageUp={() => movePageUp(page.id)}
-            onMovePageDown={() => movePageDown(page.id)}
-            onUpdateField={(fieldId, updates) => updateField(page.id, fieldId, updates)}
-            onAddField={() => addField(page.id)}
-            onDeleteField={fieldId => deleteField(page.id, fieldId)}
-            onMoveFieldUp={fieldId => moveFieldUp(page.id, fieldId)}
-            onMoveFieldDown={fieldId => moveFieldDown(page.id, fieldId)}
-          />
-        ))}
-      </div>
+          {/* Pages */}
+          <div className="space-y-5">
+            {sortedPages.map((page, idx) => (
+              <PageCard
+                key={page.id}
+                page={page}
+                pageIndex={idx}
+                isFirst={idx === 0}
+                isLast={idx === sortedPages.length - 1}
+                onUpdatePage={updates => updatePage(page.id, updates)}
+                onDeletePage={() => deletePage(page.id)}
+                onMovePageUp={() => movePageUp(page.id)}
+                onMovePageDown={() => movePageDown(page.id)}
+                onUpdateField={(fieldId, updates) => updateField(page.id, fieldId, updates)}
+                onAddField={() => addField(page.id)}
+                onDeleteField={fieldId => deleteField(page.id, fieldId)}
+                onMoveFieldUp={fieldId => moveFieldUp(page.id, fieldId)}
+                onMoveFieldDown={fieldId => moveFieldDown(page.id, fieldId)}
+              />
+            ))}
+          </div>
 
-      {/* Add page */}
-      <button
-        onClick={addPage}
-        className="flex items-center gap-2 w-full px-4 py-3 mt-5 border border-dashed border-slate-300 rounded-xl text-sm text-slate-500 hover:border-slate-400 hover:text-slate-700 transition-colors"
-      >
-        <Plus size={14} /> Add page
-      </button>
+          {/* Add page */}
+          <button
+            onClick={addPage}
+            className="flex items-center gap-2 w-full px-4 py-3 mt-5 border border-dashed border-slate-300 rounded-xl text-sm text-slate-500 hover:border-slate-400 hover:text-slate-700 transition-colors"
+          >
+            <Plus size={14} /> Add page
+          </button>
+        </div>
+
+        {/* Right: Live Preview (2/5) */}
+        <div className="col-span-2">
+          <FormPreview name={name} schema={schema} />
+        </div>
+      </div>
     </div>
   )
 }
