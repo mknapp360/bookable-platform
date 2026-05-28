@@ -4,7 +4,7 @@ import {
   ArrowLeft, Mail, Phone, Pencil,
   Tag, FolderOpen, CheckCircle2, Sparkles,
   ClipboardList, MessageSquare, Activity as ActivityIcon, Save, CalendarPlus,
-  Send, X, Copy, Check as CheckIcon, AlertTriangle, FileText, Download
+  Send, X, Copy, Check as CheckIcon, AlertTriangle, FileText, ChevronDown
 } from 'lucide-react'
 import { EnquiryPanel } from '@/components/crm/EnquiryPanel'
 import { ActivityFeed } from '@/components/crm/ActivityFeed'
@@ -294,11 +294,43 @@ export function ContactDetailPage() {
   const [showTagPicker, setShowTagPicker] = useState(false)
 
   // Documents & forms
-  const { documents, getSignedUrl } = useDocuments(tenantId)
+  const { documents } = useDocuments(tenantId)
   const { templates: formTemplates } = useFormTemplates(tenantId)
   const { submissions: contactSubmissions, refetch: refetchSubmissions } = useFormSubmissions(tenantId)
-  const [showDocPicker, setShowDocPicker] = useState(false)
+  const [docAccordion, setDocAccordion] = useState<Record<string, boolean>>({})
   const [sendFormId, setSendFormId] = useState<string | null>(null)
+  const [brochureSends, setBrochureSends] = useState<Record<string, string>>({}) // docId → sent_at
+
+  // Load brochure send records for this contact
+  useEffect(() => {
+    if (!tenantId || !id) return
+    supabase
+      .from('document_sends')
+      .select('document_id, sent_at')
+      .eq('contact_id', id)
+      .then(({ data }) => {
+        const map: Record<string, string> = {}
+        for (const row of (data ?? []) as { document_id: string; sent_at: string }[]) {
+          map[row.document_id] = row.sent_at
+        }
+        setBrochureSends(map)
+      })
+  }, [tenantId, id])
+
+  async function handleSendBrochure(docId: string) {
+    if (!tenantId || !id) return
+    await supabase.from('document_sends').upsert({
+      tenant_id: tenantId,
+      document_id: docId,
+      contact_id: id,
+      sent_at: new Date().toISOString(),
+    }, { onConflict: 'document_id,contact_id' })
+    setBrochureSends(prev => ({ ...prev, [docId]: new Date().toISOString() }))
+  }
+
+  function toggleAccordion(key: string) {
+    setDocAccordion(prev => ({ ...prev, [key]: !prev[key] }))
+  }
 
   const contact = contacts.find(c => c.id === id)
 
@@ -777,80 +809,92 @@ export function ContactDetailPage() {
           <div className="bg-white rounded-xl border border-slate-200 p-5">
             <h3 className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-3">Documents</h3>
 
-            {/* Sent forms for this contact */}
-            {(() => {
-              const forThisContact = contactSubmissions.filter(s => s.contact_id === id)
-              return forThisContact.length > 0 ? (
-                <div className="space-y-2 mb-3">
-                  {forThisContact.map(sub => {
-                    const tmpl = formTemplates.find(t => t.id === sub.form_template_id)
-                    return (
-                      <div key={sub.id} className="flex items-center gap-2 text-xs">
-                        <ClipboardList size={12} className="text-blue-500 shrink-0" />
-                        <span className="flex-1 text-slate-700 truncate">{tmpl?.name ?? 'Form'}</span>
-                        <span className={cn(
-                          'px-1.5 py-0.5 rounded-full text-[10px] font-medium',
-                          sub.status === 'completed' ? 'bg-green-100 text-green-700' : 'bg-amber-100 text-amber-700'
-                        )}>
-                          {sub.status === 'completed' ? 'Completed' : 'Pending'}
-                        </span>
-                      </div>
-                    )
-                  })}
-                </div>
-              ) : null
-            })()}
-
-            {/* Send document picker */}
-            {showDocPicker ? (
-              <div className="space-y-1.5">
-                {documents.length === 0 && formTemplates.length === 0 ? (
-                  <p className="text-xs text-slate-400">No documents created yet. Add them in Documents.</p>
-                ) : (
-                  <>
-                    {/* Brochures */}
-                    {documents.map(doc => (
-                      <button
-                        key={doc.id}
-                        onClick={async () => {
-                          const url = await getSignedUrl(doc.file_path)
-                          if (url) window.open(url, '_blank')
-                        }}
-                        className="flex items-center gap-2 w-full text-left px-2 py-1.5 rounded-lg hover:bg-slate-50 transition-colors"
-                      >
-                        <FileText size={12} className="text-violet-500 shrink-0" />
-                        <span className="text-xs text-slate-700 flex-1 truncate">{doc.name}</span>
-                        <Download size={10} className="text-slate-400 shrink-0" />
-                      </button>
-                    ))}
-                    {/* Published forms */}
-                    {formTemplates.filter(t => t.status === 'published').map(tmpl => (
-                      <button
-                        key={tmpl.id}
-                        onClick={() => { setSendFormId(tmpl.id); setShowDocPicker(false) }}
-                        className="flex items-center gap-2 w-full text-left px-2 py-1.5 rounded-lg hover:bg-slate-50 transition-colors"
-                      >
-                        <ClipboardList size={12} className="text-blue-500 shrink-0" />
-                        <span className="text-xs text-slate-700 flex-1 truncate">{tmpl.name}</span>
-                        <Send size={10} className="text-slate-400 shrink-0" />
-                      </button>
-                    ))}
-                  </>
-                )}
-                <button
-                  onClick={() => setShowDocPicker(false)}
-                  className="text-xs text-slate-400 hover:text-slate-600 mt-1"
-                >
-                  Done
-                </button>
-              </div>
+            {documents.length === 0 && formTemplates.length === 0 ? (
+              <p className="text-xs text-slate-400">No documents created yet. Add them in Documents.</p>
             ) : (
-              <button
-                onClick={() => setShowDocPicker(true)}
-                className="flex items-center gap-1 text-xs text-blue-600 hover:text-blue-700 transition-colors"
-              >
-                <Send size={11} /> Send document
-              </button>
+              <div className="space-y-1">
+                {/* Brochures accordion */}
+                {documents.length > 0 && (
+                  <div>
+                    <button
+                      onClick={() => toggleAccordion('brochures')}
+                      className="flex items-center justify-between w-full py-2 text-xs font-semibold text-slate-700 hover:text-slate-900 transition-colors"
+                    >
+                      <div className="flex items-center gap-2">
+                        <FileText size={13} className="text-violet-500" />
+                        Brochures
+                        <span className="text-slate-400 font-normal">({documents.length})</span>
+                      </div>
+                      <ChevronDown size={13} className={cn('text-slate-400 transition-transform', docAccordion['brochures'] && 'rotate-180')} />
+                    </button>
+                    {docAccordion['brochures'] && (
+                      <div className="pl-5 pb-2 space-y-1">
+                        {documents.map(doc => {
+                          const sentAt = brochureSends[doc.id]
+                          return (
+                            <div key={doc.id} className="flex items-center gap-2 py-1.5">
+                              <span className="text-xs text-slate-700 flex-1 truncate">{doc.name}</span>
+                              {sentAt ? (
+                                <span className="text-[10px] text-slate-400 shrink-0">
+                                  Sent {new Date(sentAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}
+                                </span>
+                              ) : (
+                                <button
+                                  onClick={() => handleSendBrochure(doc.id)}
+                                  className="flex items-center gap-1 text-[11px] text-blue-600 hover:text-blue-700 font-medium shrink-0 transition-colors"
+                                >
+                                  <Send size={10} /> Send
+                                </button>
+                              )}
+                            </div>
+                          )
+                        })}
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {/* Online Forms accordion */}
+                {formTemplates.filter(t => t.status === 'published').length > 0 && (
+                  <div>
+                    <button
+                      onClick={() => toggleAccordion('forms')}
+                      className="flex items-center justify-between w-full py-2 text-xs font-semibold text-slate-700 hover:text-slate-900 transition-colors"
+                    >
+                      <div className="flex items-center gap-2">
+                        <ClipboardList size={13} className="text-blue-500" />
+                        Online Forms
+                        <span className="text-slate-400 font-normal">({formTemplates.filter(t => t.status === 'published').length})</span>
+                      </div>
+                      <ChevronDown size={13} className={cn('text-slate-400 transition-transform', docAccordion['forms'] && 'rotate-180')} />
+                    </button>
+                    {docAccordion['forms'] && (
+                      <div className="pl-5 pb-2 space-y-1">
+                        {formTemplates.filter(t => t.status === 'published').map(tmpl => {
+                          const submission = contactSubmissions.find(s => s.form_template_id === tmpl.id && s.contact_id === id)
+                          return (
+                            <div key={tmpl.id} className="flex items-center gap-2 py-1.5">
+                              <span className="text-xs text-slate-700 flex-1 truncate">{tmpl.name}</span>
+                              {submission ? (
+                                <span className="text-[10px] text-slate-400 shrink-0">
+                                  Sent {new Date(submission.sent_at ?? submission.created_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}
+                                </span>
+                              ) : (
+                                <button
+                                  onClick={() => setSendFormId(tmpl.id)}
+                                  className="flex items-center gap-1 text-[11px] text-blue-600 hover:text-blue-700 font-medium shrink-0 transition-colors"
+                                >
+                                  <Send size={10} /> Send
+                                </button>
+                              )}
+                            </div>
+                          )
+                        })}
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
             )}
           </div>
         </div>

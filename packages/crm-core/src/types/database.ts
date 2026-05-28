@@ -391,6 +391,52 @@ export type Database = {
           },
         ]
       }
+      document_sends: {
+        Row: {
+          id: string
+          tenant_id: string
+          document_id: string
+          contact_id: string
+          sent_at: string
+        }
+        Insert: {
+          id?: string
+          tenant_id: string
+          document_id: string
+          contact_id: string
+          sent_at?: string
+        }
+        Update: {
+          id?: string
+          tenant_id?: string
+          document_id?: string
+          contact_id?: string
+          sent_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "document_sends_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "document_sends_document_id_fkey"
+            columns: ["document_id"]
+            isOneToOne: false
+            referencedRelation: "documents"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "document_sends_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       document_types: {
         Row: {
           created_at: string
