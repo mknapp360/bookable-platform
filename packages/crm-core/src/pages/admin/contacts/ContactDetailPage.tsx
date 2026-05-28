@@ -16,7 +16,7 @@ import { usePipelineStages } from '@/hooks/usePipelineStages'
 import { useTags, useContactTags } from '@/hooks/useTags'
 import { supabase } from '@/lib/supabase'
 import { cn } from '@/lib/cn'
-import type { Activity, Case, Contact, ContactTag } from '@/types'
+import type { Activity, Case, Contact } from '@/types'
 
 // Case conversion stage is now read from tenant.case_conversion_stage_id
 
