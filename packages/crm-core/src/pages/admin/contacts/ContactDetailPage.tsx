@@ -4,16 +4,20 @@ import {
   ArrowLeft, Mail, Phone, Pencil,
   Tag, FolderOpen, CheckCircle2, Sparkles,
   ClipboardList, MessageSquare, Activity as ActivityIcon, Save, CalendarPlus,
-  Send, X, Copy, Check as CheckIcon, AlertTriangle
+  Send, X, Copy, Check as CheckIcon, AlertTriangle, FileText, Download
 } from 'lucide-react'
 import { EnquiryPanel } from '@/components/crm/EnquiryPanel'
 import { ActivityFeed } from '@/components/crm/ActivityFeed'
 import { EmailThread } from '@/components/crm/EmailThread'
 import { ScheduleMeetingModal } from '@/components/crm/ScheduleMeetingModal'
+import { SendFormModal } from '@/components/crm/SendFormModal'
 import { useTenant } from '@/hooks/useTenant'
 import { useContacts } from '@/hooks/useContacts'
 import { usePipelineStages } from '@/hooks/usePipelineStages'
 import { useTags, useContactTags } from '@/hooks/useTags'
+import { useDocuments } from '@/hooks/useDocuments'
+import { useFormTemplates } from '@/hooks/useFormTemplates'
+import { useFormSubmissions } from '@/hooks/useFormSubmissions'
 import { supabase } from '@/lib/supabase'
 import { cn } from '@/lib/cn'
 import type { Activity, Case, Contact } from '@/types'
@@ -288,6 +292,13 @@ export function ContactDetailPage() {
   const { tags: allTags } = useTags(tenantId)
   const { tagIds, linkTag, unlinkTag } = useContactTags(id ?? null)
   const [showTagPicker, setShowTagPicker] = useState(false)
+
+  // Documents & forms
+  const { documents, getSignedUrl } = useDocuments(tenantId)
+  const { templates: formTemplates } = useFormTemplates(tenantId)
+  const { submissions: contactSubmissions, refetch: refetchSubmissions } = useFormSubmissions(tenantId)
+  const [showDocPicker, setShowDocPicker] = useState(false)
+  const [sendFormId, setSendFormId] = useState<string | null>(null)
 
   const contact = contacts.find(c => c.id === id)
 
@@ -761,6 +772,87 @@ export function ContactDetailPage() {
               </button>
             )}
           </div>
+
+          {/* Documents */}
+          <div className="bg-white rounded-xl border border-slate-200 p-5">
+            <h3 className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-3">Documents</h3>
+
+            {/* Sent forms for this contact */}
+            {(() => {
+              const forThisContact = contactSubmissions.filter(s => s.contact_id === id)
+              return forThisContact.length > 0 ? (
+                <div className="space-y-2 mb-3">
+                  {forThisContact.map(sub => {
+                    const tmpl = formTemplates.find(t => t.id === sub.form_template_id)
+                    return (
+                      <div key={sub.id} className="flex items-center gap-2 text-xs">
+                        <ClipboardList size={12} className="text-blue-500 shrink-0" />
+                        <span className="flex-1 text-slate-700 truncate">{tmpl?.name ?? 'Form'}</span>
+                        <span className={cn(
+                          'px-1.5 py-0.5 rounded-full text-[10px] font-medium',
+                          sub.status === 'completed' ? 'bg-green-100 text-green-700' : 'bg-amber-100 text-amber-700'
+                        )}>
+                          {sub.status === 'completed' ? 'Completed' : 'Pending'}
+                        </span>
+                      </div>
+                    )
+                  })}
+                </div>
+              ) : null
+            })()}
+
+            {/* Send document picker */}
+            {showDocPicker ? (
+              <div className="space-y-1.5">
+                {documents.length === 0 && formTemplates.length === 0 ? (
+                  <p className="text-xs text-slate-400">No documents created yet. Add them in Documents.</p>
+                ) : (
+                  <>
+                    {/* Brochures */}
+                    {documents.map(doc => (
+                      <button
+                        key={doc.id}
+                        onClick={async () => {
+                          const url = await getSignedUrl(doc.file_path)
+                          if (url) window.open(url, '_blank')
+                        }}
+                        className="flex items-center gap-2 w-full text-left px-2 py-1.5 rounded-lg hover:bg-slate-50 transition-colors"
+                      >
+                        <FileText size={12} className="text-violet-500 shrink-0" />
+                        <span className="text-xs text-slate-700 flex-1 truncate">{doc.name}</span>
+                        <Download size={10} className="text-slate-400 shrink-0" />
+                      </button>
+                    ))}
+                    {/* Published forms */}
+                    {formTemplates.filter(t => t.status === 'published').map(tmpl => (
+                      <button
+                        key={tmpl.id}
+                        onClick={() => { setSendFormId(tmpl.id); setShowDocPicker(false) }}
+                        className="flex items-center gap-2 w-full text-left px-2 py-1.5 rounded-lg hover:bg-slate-50 transition-colors"
+                      >
+                        <ClipboardList size={12} className="text-blue-500 shrink-0" />
+                        <span className="text-xs text-slate-700 flex-1 truncate">{tmpl.name}</span>
+                        <Send size={10} className="text-slate-400 shrink-0" />
+                      </button>
+                    ))}
+                  </>
+                )}
+                <button
+                  onClick={() => setShowDocPicker(false)}
+                  className="text-xs text-slate-400 hover:text-slate-600 mt-1"
+                >
+                  Done
+                </button>
+              </div>
+            ) : (
+              <button
+                onClick={() => setShowDocPicker(true)}
+                className="flex items-center gap-1 text-xs text-blue-600 hover:text-blue-700 transition-colors"
+              >
+                <Send size={11} /> Send document
+              </button>
+            )}
+          </div>
         </div>
       </div>
 
@@ -786,6 +878,20 @@ export function ContactDetailPage() {
           onSent={() => { loadActivities(); setTab('activity') }}
         />
       )}
+
+      {/* Send form modal */}
+      {sendFormId && tenantId && (() => {
+        const tmpl = formTemplates.find(t => t.id === sendFormId)
+        return tmpl ? (
+          <SendFormModal
+            tenantId={tenantId}
+            formTemplateId={tmpl.id}
+            formName={tmpl.name}
+            onClose={() => setSendFormId(null)}
+            onSent={() => refetchSubmissions()}
+          />
+        ) : null
+      })()}
     </div>
   )
 }
