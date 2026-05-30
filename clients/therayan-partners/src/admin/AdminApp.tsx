@@ -1,6 +1,10 @@
 import { useEffect } from 'react'
 import { MemoryRouter } from 'react-router-dom'
 import { createCrmApp } from '@bookable/crm-core'
+
+// Inject Supabase config so crm-core uses this project's instance
+;(window as any).__SUPABASE_URL__ = import.meta.env.VITE_SUPABASE_URL
+;(window as any).__SUPABASE_ANON_KEY__ = import.meta.env.VITE_SUPABASE_ANON_KEY
 import { Search, Kanban } from 'lucide-react'
 import { PropertySearchPage } from './deals/PropertySearchPage'
 import { DealAnalysisPage } from './deals/DealAnalysisPage'
