@@ -15,6 +15,8 @@ export interface Property {
   price_reduced: boolean
   back_on_market: boolean
   status: PropertyStatus
+  strategy: string | null
+  distance: number | null
   created_at: string
   updated_at: string
 }
@@ -44,6 +46,7 @@ export interface DealAnalysis {
   inputs: Record<string, number>
   outputs: Record<string, number | null>
   propertydata_comps: unknown[]
+  area_data: Record<string, unknown>
   notes: string | null
   created_at: string
   updated_at: string
@@ -60,6 +63,17 @@ export interface DealPackage {
   created_at: string
   updated_at: string
 }
+
+export const SOURCING_STRATEGIES = [
+  { value: 'below-market-value',    label: 'Below Market Value' },
+  { value: 'unmodernised-properties', label: 'Needs Modernisation' },
+  { value: 'price-reduced',         label: 'Price Reduced' },
+  { value: 'slow-to-sell',          label: 'Slow to Sell (90d+)' },
+  { value: 'repossessed',           label: 'Repossessed' },
+  { value: 'short-lease',           label: 'Short Lease' },
+  { value: 'large-plot',            label: 'Large Plot' },
+  { value: 'rent-to-rent',          label: 'Rent to Rent' },
+]
 
 export function formatPrice(price: number | null): string {
   if (!price) return '—'

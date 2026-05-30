@@ -20,6 +20,7 @@ export function DealAnalysisPage() {
   const [analysing, setAnalysing] = useState(false)
   const [analysisResult, setAnalysisResult] = useState<Record<string, unknown> | null>(null)
   const [comps, setComps] = useState<unknown[]>([])
+  const [areaData, setAreaData] = useState<Record<string, unknown>>({})
   const [tab, setTab] = useState<'btl' | 'brr' | 'hmo'>('btl')
   const [error, setError] = useState<string | null>(null)
 
@@ -41,6 +42,7 @@ export function DealAnalysisPage() {
       const best = analyses[0]
       setAnalysisResult(best.outputs as Record<string, unknown>)
       setComps(best.propertydata_comps ?? [])
+      setAreaData((best.area_data as Record<string, unknown>) ?? {})
     }
   }, [analyses])
 
@@ -66,6 +68,7 @@ export function DealAnalysisPage() {
 
       setAnalysisResult(data.analysis)
       setComps(data.comps ?? [])
+      setAreaData(data.area_data ?? {})
       refetch()
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Something went wrong')
@@ -120,13 +123,15 @@ export function DealAnalysisPage() {
         {error && <p className="text-sm text-red-500 mb-4">{error}</p>}
 
         {analysisResult ? (
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4">
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
             {[
               { label: 'Gross Yield', value: analysisResult.gross_yield ? `${analysisResult.gross_yield}%` : '—' },
-              { label: 'Avg Rent/mo', value: analysisResult.avg_monthly_rent ? `£${Number(analysisResult.avg_monthly_rent).toLocaleString()}` : '—' },
-              { label: 'Avg £/sqft', value: analysisResult.avg_price_per_sqft ? `£${Number(analysisResult.avg_price_per_sqft).toLocaleString()}` : '—' },
+              { label: 'Rent Valuation/mo', value: analysisResult.rent_valuation ? `£${Number(analysisResult.rent_valuation).toLocaleString()}` : '—' },
               { label: 'Est. Value', value: analysisResult.estimated_value ? formatPrice(Number(analysisResult.estimated_value)) : '—' },
+              { label: 'Avg £/sqft', value: analysisResult.avg_price_per_sqft ? `£${Number(analysisResult.avg_price_per_sqft).toLocaleString()}` : '—' },
               { label: '1yr Growth', value: analysisResult.growth_1y ? `${analysisResult.growth_1y}%` : '—' },
+              { label: 'Stamp Duty', value: analysisResult.stamp_duty ? `£${Number(analysisResult.stamp_duty).toLocaleString()}` : '—' },
+              { label: 'HMO Room Rent', value: analysisResult.hmo_room_rent ? `£${Number(analysisResult.hmo_room_rent).toLocaleString()}` : '—' },
               { label: 'HMO Demand', value: analysisResult.hmo_demand ?? '—' },
             ].map(m => (
               <div key={m.label} className="bg-gray-50 rounded-lg p-3">

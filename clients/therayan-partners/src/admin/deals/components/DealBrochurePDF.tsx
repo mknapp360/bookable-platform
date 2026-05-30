@@ -38,6 +38,7 @@ interface Props {
 export function DealBrochurePDF({ property, analysis, dealPackage }: Props) {
   const outputs = (analysis?.outputs ?? {}) as Record<string, unknown>
   const comps = (analysis?.propertydata_comps ?? []) as Record<string, unknown>[]
+  const area = (analysis?.area_data ?? {}) as Record<string, Record<string, unknown>>
   const fmt = (n: unknown) => n != null ? `£${Number(n).toLocaleString('en-GB')}` : '—'
 
   return (
@@ -115,6 +116,70 @@ export function DealBrochurePDF({ property, analysis, dealPackage }: Props) {
                 <Text style={styles.tableCell}>{String(c.type ?? c.property_type ?? '—')}</Text>
               </View>
             ))}
+          </View>
+        )}
+
+        {/* Area Overview */}
+        {Object.keys(area).length > 0 && (
+          <View style={{ marginTop: 20 }} break>
+            <Text style={styles.sectionTitle}>Area Overview</Text>
+
+            {/* Demographics */}
+            {area.demographics && (
+              <View style={{ marginBottom: 12 }}>
+                <Text style={{ fontSize: 10, fontFamily: 'Helvetica-Bold', marginBottom: 4 }}>Demographics</Text>
+                {[
+                  ['Population', area.demographics.population],
+                  ['Avg. Household Income', area.demographics.average_income ? fmt(area.demographics.average_income) : null],
+                  ['Owner Occupied', area.demographics.owner_occupied ? `${area.demographics.owner_occupied}%` : null],
+                ].filter(([, v]) => v != null).map(([label, value], i) => (
+                  <View key={i} style={styles.row}>
+                    <Text style={styles.label}>{String(label)}</Text>
+                    <Text style={styles.value}>{String(value)}</Text>
+                  </View>
+                ))}
+              </View>
+            )}
+
+            {/* Crime */}
+            {area.crime && (
+              <View style={{ marginBottom: 12 }}>
+                <Text style={{ fontSize: 10, fontFamily: 'Helvetica-Bold', marginBottom: 4 }}>Crime</Text>
+                {[
+                  ['Crime Rate', area.crime.crime_rate ?? area.crime.total],
+                  ['vs National Avg', area.crime.national_average ? `${area.crime.national_average}` : null],
+                ].filter(([, v]) => v != null).map(([label, value], i) => (
+                  <View key={i} style={styles.row}>
+                    <Text style={styles.label}>{String(label)}</Text>
+                    <Text style={styles.value}>{String(value)}</Text>
+                  </View>
+                ))}
+              </View>
+            )}
+
+            {/* Schools */}
+            {area.schools && Array.isArray(area.schools.schools ?? area.schools) && (
+              <View style={{ marginBottom: 12 }}>
+                <Text style={{ fontSize: 10, fontFamily: 'Helvetica-Bold', marginBottom: 4 }}>Nearest Schools</Text>
+                {((area.schools.schools ?? area.schools) as Record<string, unknown>[]).slice(0, 4).map((s, i) => (
+                  <View key={i} style={styles.row}>
+                    <Text style={styles.label}>{String(s.name ?? '—')}</Text>
+                    <Text style={styles.value}>{String(s.ofsted_rating ?? s.rating ?? '—')}</Text>
+                  </View>
+                ))}
+              </View>
+            )}
+
+            {/* Flood Risk */}
+            {area.flood_risk && (
+              <View style={{ marginBottom: 12 }}>
+                <Text style={{ fontSize: 10, fontFamily: 'Helvetica-Bold', marginBottom: 4 }}>Flood Risk</Text>
+                <View style={styles.row}>
+                  <Text style={styles.label}>Risk Level</Text>
+                  <Text style={styles.value}>{String(area.flood_risk.flood_risk ?? area.flood_risk.risk_level ?? '—')}</Text>
+                </View>
+              </View>
+            )}
           </View>
         )}
 

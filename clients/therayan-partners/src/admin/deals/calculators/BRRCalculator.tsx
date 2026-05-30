@@ -17,7 +17,7 @@ export function BRRCalculator({ property, analysis, onSave }: Props) {
     gdv: estimatedValue || (property.price ? Math.round(property.price * 1.3) : 0),
     refinance_ltv: 75,
     mortgage_rate: 5.5,
-    monthly_rent: Number(analysis?.avg_monthly_rent ?? 0),
+    monthly_rent: Number(analysis?.rent_valuation ?? analysis?.avg_monthly_rent ?? 0),
   })
 
   const set = (key: string, val: string) =>

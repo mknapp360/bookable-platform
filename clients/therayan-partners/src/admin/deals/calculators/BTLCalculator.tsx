@@ -9,7 +9,7 @@ interface Props {
 }
 
 export function BTLCalculator({ property, analysis, onSave }: Props) {
-  const defaultRent = Number(analysis?.avg_monthly_rent ?? 0)
+  const defaultRent = Number(analysis?.rent_valuation ?? analysis?.avg_monthly_rent ?? 0)
 
   const [inputs, setInputs] = useState({
     purchase_price: property.price ?? 0,
