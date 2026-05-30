@@ -19,17 +19,12 @@ function json(body: Record<string, unknown>, status = 200) {
 
 interface ScrapeRequest {
   tenant_id: string
-  location: string
-  max_price?: number
-  property_type?: string
-  bedrooms?: number
+  search_url: string
   source: 'rightmove' | 'zoopla'
+  max_items?: number
 }
 
-const ACTOR_IDS: Record<string, string> = {
-  rightmove: 'dhrumil~rightmove-scraper',
-  zoopla:    'dhrumil~zoopla-scraper',
-}
+const ACTOR_ID = 'femstar~uk-property-data-scraper-rightmove-zoopla'
 
 Deno.serve(async (req: Request) => {
   if (req.method === 'OPTIONS') {
@@ -51,47 +46,35 @@ Deno.serve(async (req: Request) => {
     const userId = jwt.sub
     if (!userId) return json({ error: 'Invalid token' }, 401)
 
+    const body: ScrapeRequest = await req.json()
+    const { tenant_id, search_url, source, max_items } = body
+
     const admin = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY)
 
     const { data: membership } = await admin
       .from('tenant_users')
       .select('role')
-      .eq('tenant_id', (await req.clone().json()).tenant_id)
+      .eq('tenant_id', tenant_id)
       .eq('user_id', userId)
       .maybeSingle()
 
     if (!membership) return json({ error: 'Forbidden' }, 403)
 
-    const body: ScrapeRequest = await req.json()
-    const { tenant_id, location, max_price, property_type, bedrooms, source } = body
-
-    if (!tenant_id || !location || !source) {
-      return json({ error: 'Missing required fields: tenant_id, location, source' }, 400)
+    if (!tenant_id || !search_url || !source) {
+      return json({ error: 'Missing required fields: tenant_id, search_url, source' }, 400)
     }
 
-    const actorId = ACTOR_IDS[source]
-    if (!actorId) return json({ error: `Unknown source: ${source}` }, 400)
-
-    // Build Apify actor input
-    const actorInput: Record<string, unknown> = {
-      location,
-      maxItems: 50,
-    }
-    if (source === 'rightmove') {
-      actorInput.searchType = 'sale'
-      if (max_price) actorInput.maxPrice = max_price
-      if (property_type) actorInput.propertyType = property_type
-      if (bedrooms) actorInput.minBedrooms = bedrooms
-    } else {
-      actorInput.listing_status = 'sale'
-      if (max_price) actorInput.max_price = max_price
-      if (property_type) actorInput.property_type = property_type
-      if (bedrooms) actorInput.minimum_beds = bedrooms
+    // Build Apify actor input for femstar scraper
+    const actorInput = {
+      propertySite: source === 'rightmove' ? 'Rightmove' : 'Zoopla',
+      startUrls: [{ url: search_url }],
+      maxItems: max_items ?? 50,
+      maxPagesPerUrl: 5,
     }
 
     // Run the actor synchronously (wait for results)
     const runRes = await fetch(
-      `https://api.apify.com/v2/acts/${actorId}/run-sync-get-dataset-items?token=${APIFY_API_TOKEN}`,
+      `https://api.apify.com/v2/acts/${ACTOR_ID}/run-sync-get-dataset-items?token=${APIFY_API_TOKEN}`,
       {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },

@@ -12,13 +12,9 @@ export function PropertySearchPage() {
   const navigate = useNavigate()
   const { properties, loading, refetch, updateStatus } = useProperties()
 
-  const [form, setForm] = useState({
-    location: '',
-    max_price: '',
-    property_type: '',
-    bedrooms: '',
-    source: 'rightmove' as 'rightmove' | 'zoopla',
-  })
+  const [searchUrl, setSearchUrl] = useState('')
+  const [source, setSource] = useState<'rightmove' | 'zoopla'>('rightmove')
+  const [maxItems, setMaxItems] = useState('50')
   const [scraping, setScraping] = useState(false)
   const [result, setResult] = useState<{ total: number; upserted: number } | null>(null)
   const [error, setError] = useState<string | null>(null)
@@ -42,11 +38,9 @@ export function PropertySearchPage() {
         },
         body: JSON.stringify({
           tenant_id: TENANT_ID,
-          location: form.location,
-          max_price: form.max_price ? Number(form.max_price) : undefined,
-          property_type: form.property_type || undefined,
-          bedrooms: form.bedrooms ? Number(form.bedrooms) : undefined,
-          source: form.source,
+          search_url: searchUrl,
+          source,
+          max_items: Number(maxItems) || 50,
         }),
       })
 
@@ -65,70 +59,24 @@ export function PropertySearchPage() {
   return (
     <div className="p-8">
       <h1 className="text-2xl font-bold text-gray-900 mb-1">Property Search</h1>
-      <p className="text-sm text-gray-500 mb-8">Scrape listings from Rightmove and Zoopla.</p>
+      <p className="text-sm text-gray-500 mb-8">
+        Paste a search URL from Rightmove or Zoopla to scrape listings.
+      </p>
 
       {/* Search form */}
       <form onSubmit={handleScrape} className="bg-white border border-gray-200 rounded-xl p-6 mb-8">
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 mb-4">
-          <div>
-            <label className="block text-xs font-medium text-gray-600 mb-1">Location</label>
-            <input
-              type="text"
-              required
-              value={form.location}
-              onChange={e => setForm(f => ({ ...f, location: e.target.value }))}
-              className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none"
-              placeholder="e.g. Brighton, BN1"
-            />
-          </div>
-          <div>
-            <label className="block text-xs font-medium text-gray-600 mb-1">Max Price</label>
-            <input
-              type="number"
-              value={form.max_price}
-              onChange={e => setForm(f => ({ ...f, max_price: e.target.value }))}
-              className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none"
-              placeholder="e.g. 300000"
-            />
-          </div>
-          <div>
-            <label className="block text-xs font-medium text-gray-600 mb-1">Property Type</label>
-            <select
-              value={form.property_type}
-              onChange={e => setForm(f => ({ ...f, property_type: e.target.value }))}
-              className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none"
-            >
-              <option value="">Any</option>
-              <option value="detached">Detached</option>
-              <option value="semi-detached">Semi-Detached</option>
-              <option value="terraced">Terraced</option>
-              <option value="flat">Flat</option>
-              <option value="bungalow">Bungalow</option>
-            </select>
-          </div>
-          <div>
-            <label className="block text-xs font-medium text-gray-600 mb-1">Bedrooms</label>
-            <select
-              value={form.bedrooms}
-              onChange={e => setForm(f => ({ ...f, bedrooms: e.target.value }))}
-              className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none"
-            >
-              <option value="">Any</option>
-              {[1, 2, 3, 4, 5].map(n => (
-                <option key={n} value={n}>{n}+</option>
-              ))}
-            </select>
-          </div>
+        <div className="space-y-4">
+          {/* Source toggle */}
           <div>
             <label className="block text-xs font-medium text-gray-600 mb-1">Source</label>
-            <div className="flex rounded-lg border border-gray-200 overflow-hidden">
+            <div className="flex rounded-lg border border-gray-200 overflow-hidden w-fit">
               {(['rightmove', 'zoopla'] as const).map(s => (
                 <button
                   key={s}
                   type="button"
-                  onClick={() => setForm(f => ({ ...f, source: s }))}
-                  className={`flex-1 py-2 text-xs font-medium capitalize transition-colors ${
-                    form.source === s
+                  onClick={() => setSource(s)}
+                  className={`px-5 py-2 text-sm font-medium capitalize transition-colors ${
+                    source === s
                       ? 'bg-blue-600 text-white'
                       : 'bg-white text-gray-600 hover:bg-gray-50'
                   }`}
@@ -138,16 +86,48 @@ export function PropertySearchPage() {
               ))}
             </div>
           </div>
+
+          {/* Search URL */}
+          <div>
+            <label className="block text-xs font-medium text-gray-600 mb-1">
+              Search URL
+            </label>
+            <input
+              type="url"
+              required
+              value={searchUrl}
+              onChange={e => setSearchUrl(e.target.value)}
+              className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none"
+              placeholder={source === 'rightmove'
+                ? 'https://www.rightmove.co.uk/property-for-sale/find.html?locationIdentifier=...'
+                : 'https://www.zoopla.co.uk/for-sale/properties/...'
+              }
+            />
+            <p className="text-xs text-gray-400 mt-1">
+              Go to {source === 'rightmove' ? 'Rightmove' : 'Zoopla'}, set your filters (location, price, beds, type), then copy the URL from the address bar.
+            </p>
+          </div>
+
+          {/* Max items */}
+          <div>
+            <label className="block text-xs font-medium text-gray-600 mb-1">Max Results</label>
+            <input
+              type="number"
+              value={maxItems}
+              onChange={e => setMaxItems(e.target.value)}
+              className="w-32 px-3 py-2 border border-gray-200 rounded-lg text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none"
+            />
+          </div>
         </div>
 
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-4 mt-6">
           <button
             type="submit"
             disabled={scraping}
             className="inline-flex items-center gap-2 bg-blue-600 text-white text-sm font-medium px-5 py-2.5 rounded-lg hover:bg-blue-700 disabled:opacity-60 transition-colors"
           >
             <Search size={16} />
-            {scraping ? 'Scraping...' : 'Search Properties'}
+            {scraping ? 'Scraping... (this may take a minute)' : 'Scrape Properties'}
           </button>
 
           {result && (
@@ -161,7 +141,7 @@ export function PropertySearchPage() {
 
       {/* Results table */}
       <div className="bg-white border border-gray-200 rounded-xl overflow-hidden">
-        <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between">
+        <div className="px-6 py-4 border-b border-gray-100">
           <h2 className="font-semibold text-gray-900">
             Saved Properties ({properties.length})
           </h2>
@@ -171,7 +151,7 @@ export function PropertySearchPage() {
           <div className="p-8 text-center text-sm text-gray-400">Loading...</div>
         ) : properties.length === 0 ? (
           <div className="p-8 text-center text-sm text-gray-400">
-            No properties yet. Run a search to get started.
+            No properties yet. Run a scrape to get started.
           </div>
         ) : (
           <div className="overflow-x-auto">
