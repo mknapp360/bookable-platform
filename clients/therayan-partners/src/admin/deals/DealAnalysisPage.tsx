@@ -21,7 +21,7 @@ export function DealAnalysisPage() {
   const [analysing, setAnalysing] = useState(false)
   const [analysisResult, setAnalysisResult] = useState<Record<string, unknown> | null>(null)
   const [comps, setComps] = useState<unknown[]>([])
-  const [areaData, setAreaData] = useState<Record<string, unknown>>({})
+  const [, setAreaData] = useState<Record<string, unknown>>({})
   const [tab, setTab] = useState<'hmo' | 'sa' | 'btl' | 'brr'>('hmo')
   const [error, setError] = useState<string | null>(null)
 
@@ -207,6 +207,7 @@ export function DealAnalysisPage() {
                 inputs,
                 outputs,
                 propertydata_comps: comps,
+                area_data: {},
                 notes: null,
               })}
             />
@@ -218,10 +219,11 @@ export function DealAnalysisPage() {
               onSave={(inputs, outputs) => saveAnalysis({
                 property_id: property.id,
                 tenant_id: TENANT_ID,
-                deal_type: 'sa' as any,
+                deal_type: 'sa',
                 inputs,
                 outputs,
                 propertydata_comps: comps,
+                area_data: {},
                 notes: null,
               })}
             />
@@ -237,6 +239,7 @@ export function DealAnalysisPage() {
                 inputs,
                 outputs,
                 propertydata_comps: comps,
+                area_data: {},
                 notes: null,
               })}
             />
@@ -252,6 +255,7 @@ export function DealAnalysisPage() {
                 inputs,
                 outputs,
                 propertydata_comps: comps,
+                area_data: {},
                 notes: null,
               })}
             />

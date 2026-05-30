@@ -255,7 +255,7 @@ export function BestDealsPage() {
             })
 
             if (res.ok) {
-              const data = await res.json()
+              await res.json()
               // Fetch the newly saved properties
               const { data: props } = await supabase
                 .from('properties')
