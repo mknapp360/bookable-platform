@@ -9,6 +9,7 @@ import {
   type DragEndEvent,
 } from '@dnd-kit/core'
 import { useState } from 'react'
+import { supabase } from '../../lib/supabase'
 import { useProperties } from './hooks/useProperties'
 import { PIPELINE_COLUMNS } from './types'
 import type { PropertyStatus } from './types'
@@ -17,8 +18,16 @@ import { PropertyCard } from './components/PropertyCard'
 
 export function DealsPipelinePage() {
   const navigate = useNavigate()
-  const { properties, loading, updateStatus } = useProperties()
+  const { properties, loading, updateStatus, refetch } = useProperties()
   const [activeId, setActiveId] = useState<string | null>(null)
+
+  const handlePurgeArchived = async () => {
+    if (!confirm('Delete all archived properties? This cannot be undone.')) return
+    const archivedIds = properties.filter(p => p.status === 'archived').map(p => p.id)
+    if (archivedIds.length === 0) return
+    await supabase.from('properties').delete().in('id', archivedIds)
+    refetch()
+  }
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 5 } })
@@ -76,6 +85,8 @@ export function DealsPipelinePage() {
               label={col.label}
               properties={col.properties}
               onCardClick={(id) => navigate(`/property-analysis/${id}`)}
+              onArchive={(id) => updateStatus(id, 'archived')}
+              onPurge={col.status === 'archived' ? handlePurgeArchived : undefined}
             />
           ))}
         </div>

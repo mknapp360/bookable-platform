@@ -8,6 +8,7 @@ import type { Property } from './types'
 import { BTLCalculator } from './calculators/BTLCalculator'
 import { BRRCalculator } from './calculators/BRRCalculator'
 import { HMOCalculator } from './calculators/HMOCalculator'
+import { SACalculator } from './calculators/SACalculator'
 
 const TENANT_ID = '51ed5edf-0482-4558-934e-3a73617d56f1'
 
@@ -21,7 +22,7 @@ export function DealAnalysisPage() {
   const [analysisResult, setAnalysisResult] = useState<Record<string, unknown> | null>(null)
   const [comps, setComps] = useState<unknown[]>([])
   const [areaData, setAreaData] = useState<Record<string, unknown>>({})
-  const [tab, setTab] = useState<'btl' | 'brr' | 'hmo'>('btl')
+  const [tab, setTab] = useState<'hmo' | 'sa' | 'btl' | 'brr'>('hmo')
   const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
@@ -177,21 +178,54 @@ export function DealAnalysisPage() {
       {/* Deal calculators */}
       <div className="bg-white border border-gray-200 rounded-xl overflow-hidden">
         <div className="flex border-b border-gray-200">
-          {(['btl', 'brr', 'hmo'] as const).map(t => (
+          {([
+            { key: 'hmo', label: 'HMO' },
+            { key: 'sa',  label: 'Serviced Accommodation' },
+          ] as const).map(t => (
             <button
-              key={t}
-              onClick={() => setTab(t)}
-              className={`flex-1 px-4 py-3 text-sm font-medium uppercase transition-colors ${
-                tab === t
+              key={t.key}
+              onClick={() => setTab(t.key)}
+              className={`flex-1 px-4 py-3 text-sm font-medium transition-colors ${
+                tab === t.key
                   ? 'bg-white text-blue-600 border-b-2 border-blue-600'
                   : 'bg-gray-50 text-gray-500 hover:text-gray-700'
               }`}
             >
-              {t}
+              {t.label}
             </button>
           ))}
         </div>
         <div className="p-6">
+          {tab === 'hmo' && (
+            <HMOCalculator
+              property={property}
+              analysis={analysisResult}
+              onSave={(inputs, outputs) => saveAnalysis({
+                property_id: property.id,
+                tenant_id: TENANT_ID,
+                deal_type: 'hmo',
+                inputs,
+                outputs,
+                propertydata_comps: comps,
+                notes: null,
+              })}
+            />
+          )}
+          {tab === 'sa' && (
+            <SACalculator
+              property={property}
+              analysis={analysisResult}
+              onSave={(inputs, outputs) => saveAnalysis({
+                property_id: property.id,
+                tenant_id: TENANT_ID,
+                deal_type: 'sa' as any,
+                inputs,
+                outputs,
+                propertydata_comps: comps,
+                notes: null,
+              })}
+            />
+          )}
           {tab === 'btl' && (
             <BTLCalculator
               property={property}
@@ -215,21 +249,6 @@ export function DealAnalysisPage() {
                 property_id: property.id,
                 tenant_id: TENANT_ID,
                 deal_type: 'brr',
-                inputs,
-                outputs,
-                propertydata_comps: comps,
-                notes: null,
-              })}
-            />
-          )}
-          {tab === 'hmo' && (
-            <HMOCalculator
-              property={property}
-              analysis={analysisResult}
-              onSave={(inputs, outputs) => saveAnalysis({
-                property_id: property.id,
-                tenant_id: TENANT_ID,
-                deal_type: 'hmo',
                 inputs,
                 outputs,
                 propertydata_comps: comps,

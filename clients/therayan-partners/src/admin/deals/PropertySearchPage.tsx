@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Search, TrendingDown, RotateCcw, Clock, ExternalLink, ArrowRight, MapPin } from 'lucide-react'
+import { Search, TrendingDown, RotateCcw, Clock, ExternalLink, ArrowRight, MapPin, Pencil } from 'lucide-react'
 import { supabase } from '../../lib/supabase'
 import { useProperties } from './hooks/useProperties'
 import { formatPrice, SOURCING_STRATEGIES } from './types'
@@ -11,6 +11,13 @@ const TENANT_ID = '51ed5edf-0482-4558-934e-3a73617d56f1'
 export function PropertySearchPage() {
   const navigate = useNavigate()
   const { properties, loading, refetch, updateStatus } = useProperties()
+  const [editingBeds, setEditingBeds] = useState<string | null>(null)
+
+  const updateBedrooms = async (id: string, newBeds: number) => {
+    await supabase.from('properties').update({ bedrooms: newBeds }).eq('id', id)
+    setEditingBeds(null)
+    refetch()
+  }
 
   const [form, setForm] = useState({
     postcode: '',
@@ -216,7 +223,29 @@ export function PropertySearchPage() {
                       </div>
                     </td>
                     <td className="px-4 py-3 font-medium">{formatPrice(p.price)}</td>
-                    <td className="px-4 py-3">{p.bedrooms ?? '—'}</td>
+                    <td className="px-4 py-3">
+                      {editingBeds === p.id ? (
+                        <select
+                          autoFocus
+                          defaultValue={p.bedrooms ?? 2}
+                          onChange={e => updateBedrooms(p.id, Number(e.target.value))}
+                          onBlur={() => setEditingBeds(null)}
+                          className="w-14 px-1 py-0.5 border border-blue-400 rounded text-sm bg-white"
+                        >
+                          {[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map(n => (
+                            <option key={n} value={n}>{n}</option>
+                          ))}
+                        </select>
+                      ) : (
+                        <button
+                          onClick={() => setEditingBeds(p.id)}
+                          className="inline-flex items-center gap-1 hover:text-blue-600 transition-colors"
+                          title="Click to edit"
+                        >
+                          {p.bedrooms ?? '—'} <Pencil size={10} className="text-gray-300" />
+                        </button>
+                      )}
+                    </td>
                     <td className="px-4 py-3 capitalize text-xs">{p.property_type ?? '—'}</td>
                     <td className="px-4 py-3 text-xs">
                       {p.distance != null ? (

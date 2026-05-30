@@ -114,7 +114,7 @@ Deno.serve(async (req: Request) => {
         property_type: (item.type_standardised ?? item.type ?? null) as string | null,
         description: '',
         images,
-        listing_url: (item.url ?? item.listing_url ?? null) as string | null,
+        listing_url: (item.url ?? item.listing_url ?? buildSearchUrl(address)) as string | null,
         days_listed: item.months_on_market
           ? Math.round(Number(item.months_on_market) * 30)
           : null,
@@ -138,6 +138,10 @@ Deno.serve(async (req: Request) => {
     return json({ error: 'Internal server error' }, 500)
   }
 })
+
+function buildSearchUrl(address: string): string {
+  return `https://www.rightmove.co.uk/house-prices/${encodeURIComponent(address)}.html`
+}
 
 function extractPostcode(address: string): string | null {
   const match = address.match(/[A-Z]{1,2}\d[A-Z\d]?\s*\d[A-Z]{2}/i)

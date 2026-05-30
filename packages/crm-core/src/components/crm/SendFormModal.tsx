@@ -57,7 +57,7 @@ export function SendFormModal({
 
     if (submission) {
       const supabaseUrl = import.meta.env.VITE_SUPABASE_URL as string
-      const link = `${supabaseUrl}/functions/v1/serve-form?token=${submission.token}`
+      const link = `${supabaseUrl}/storage/v1/object/public/public-forms/form.html?token=${submission.token}&api=${encodeURIComponent(supabaseUrl)}`
 
       // Send email BEFORE updating UI state — otherwise parent re-render can unmount this modal
       try {

@@ -1,15 +1,16 @@
 import { useSortable } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
-import { TrendingDown, RotateCcw, Clock } from 'lucide-react'
+import { TrendingDown, RotateCcw, Clock, Archive } from 'lucide-react'
 import type { Property } from '../types'
 import { formatPrice } from '../types'
 
 interface Props {
   property: Property
   onClick: () => void
+  onArchive?: () => void
 }
 
-export function PropertyCard({ property, onClick }: Props) {
+export function PropertyCard({ property, onClick, onArchive }: Props) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id: property.id,
   })
@@ -56,8 +57,8 @@ export function PropertyCard({ property, onClick }: Props) {
         )}
       </div>
 
-      {/* Flags */}
-      <div className="flex flex-wrap gap-1 mt-2">
+      {/* Flags + Archive */}
+      <div className="flex flex-wrap items-center gap-1 mt-2">
         {property.price_reduced && (
           <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[10px] font-medium bg-red-50 text-red-600">
             <TrendingDown size={10} /> Reduced
@@ -77,6 +78,16 @@ export function PropertyCard({ property, onClick }: Props) {
           <span className="px-1.5 py-0.5 rounded text-[10px] font-medium bg-gray-100 text-gray-500 capitalize">
             {property.property_type}
           </span>
+        )}
+        {onArchive && property.status !== 'archived' && (
+          <button
+            onClick={(e) => { e.stopPropagation(); onArchive() }}
+            onPointerDown={(e) => e.stopPropagation()}
+            className="ml-auto inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[10px] font-medium text-slate-400 hover:bg-slate-100 hover:text-slate-600 transition-colors"
+            title="Archive"
+          >
+            <Archive size={10} /> Archive
+          </button>
         )}
       </div>
     </div>

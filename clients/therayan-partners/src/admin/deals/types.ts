@@ -42,7 +42,7 @@ export interface DealAnalysis {
   id: string
   property_id: string
   tenant_id: string
-  deal_type: 'btl' | 'brr' | 'hmo'
+  deal_type: 'btl' | 'brr' | 'hmo' | 'sa'
   inputs: Record<string, number>
   outputs: Record<string, number | null>
   propertydata_comps: unknown[]
@@ -65,14 +65,33 @@ export interface DealPackage {
 }
 
 export const SOURCING_STRATEGIES = [
-  { value: 'below-market-value',    label: 'Below Market Value' },
-  { value: 'unmodernised-properties', label: 'Needs Modernisation' },
-  { value: 'price-reduced',         label: 'Price Reduced' },
-  { value: 'slow-to-sell',          label: 'Slow to Sell (90d+)' },
-  { value: 'repossessed',           label: 'Repossessed' },
-  { value: 'short-lease',           label: 'Short Lease' },
-  { value: 'large-plot',            label: 'Large Plot' },
-  { value: 'rent-to-rent',          label: 'Rent to Rent' },
+  { value: 'unmodernised-properties',       label: 'Needs Modernisation' },
+  { value: 'reduced-properties',            label: 'Price Reduced' },
+  { value: 'slow-to-sell-properties',       label: 'Slow to Sell' },
+  { value: 'repossessed-properties',        label: 'Repossessed' },
+  { value: 'short-lease-properties',        label: 'Short Lease' },
+  { value: 'cheap-per-square-foot',         label: 'Cheap per Sqft' },
+  { value: 'high-yield-properties',         label: 'High Yield' },
+  { value: 'cash-buyers-only-properties',   label: 'Cash Buyers Only' },
+  { value: 'back-on-market',               label: 'Back on Market' },
+  { value: 'auction-properties',            label: 'Auction' },
+  { value: 'quick-sale-properties',         label: 'Quick Sale' },
+  { value: 'derelict-properties',           label: 'Derelict' },
+  { value: 'properties-with-no-chain',      label: 'No Chain' },
+  { value: 'poor-epc-score',               label: 'Poor EPC Score' },
+  { value: 'two-to-three-bed-conversions',  label: '2-3 Bed Conversion' },
+  { value: 'one-to-two-bed-conversions',    label: '1-2 Bed Conversion' },
+  { value: 'suitable-for-splitting',        label: 'Suitable for Splitting' },
+  { value: 'hmo-licenced-properties',       label: 'HMO Licenced' },
+  { value: 'tenanted-properties-for-sale',  label: 'Tenanted' },
+  { value: 'large-properties',             label: 'Large Properties' },
+  { value: 'land-plots-for-sale',           label: 'Land Plots' },
+  { value: 'holiday-let-properties',        label: 'Holiday Let' },
+  { value: 'high-rental-demand',            label: 'High Rental Demand' },
+  { value: 'properties-near-a-university',  label: 'Near University' },
+  { value: 'near-large-development',        label: 'Near Development' },
+  { value: 'properties-near-great-school',  label: 'Near Great School' },
+  { value: 'high-population-growth',        label: 'High Pop. Growth' },
 ]
 
 export function formatPrice(price: number | null): string {

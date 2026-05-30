@@ -77,73 +77,22 @@ Deno.serve(async (req: Request) => {
     }
 
     const pc = { postcode }
-    const bedrooms = property.bedrooms ? String(property.bedrooms) : '3'
-    const propType = property.property_type ?? 'Semi-detached house'
+    // Only call sold-prices — 1 credit instead of 12
+    const soldPrices = await pdFetch('sold-prices', { ...pc, max_age: '12', radius: '0.25' })
 
-    // Call PropertyData endpoints in parallel
-    const [
-      soldPrices, rents, yields, growth, demand,
-      demographics, crime, schools, floodRisk,
-      stampDuty, valuationRent, rentsHmo
-    ] = await Promise.all([
-      pdFetch('sold-prices', { ...pc, max_age: '12', radius: '0.25' }),
-      pdFetch('rents', pc),
-      pdFetch('yields', pc),
-      pdFetch('growth', pc),
-      pdFetch('demand', pc),
-      pdFetch('demographics', pc),
-      pdFetch('crime', pc),
-      pdFetch('schools', pc),
-      pdFetch('flood-risk', pc),
-      property.price ? pdFetch('stamp-duty-calculator', { price: String(property.price), type: 'additional' }) : null,
-      pdFetch('valuation-rent', { ...pc, property_type: propType, bedrooms }),
-      pdFetch('rents-hmo', pc),
-    ])
-
-    // Extract key metrics
     const d = (obj: Record<string, unknown> | null) => obj?.data ?? obj ?? {}
-
     const soldData = d(soldPrices) as Record<string, unknown>
-    const rentsData = d(rents) as Record<string, unknown>
-    const yieldsData = d(yields) as Record<string, unknown>
-    const growthData = d(growth) as Record<string, unknown>
-    const demandData = d(demand) as Record<string, unknown>
-    const rentValData = d(valuationRent) as Record<string, unknown>
-    const hmoData = d(rentsHmo) as Record<string, unknown>
-    const stampData = d(stampDuty) as Record<string, unknown>
 
-    const avgRent = rentValData.result ?? rentsData.average_rent ?? rentsData.average ?? null
-    const avgSqft = soldData.average_price_per_sqft ?? null
-    const hmoSignal = demandData.hmo_demand ?? null
-    const growthRate = growthData.growth_1y ?? null
     const estimatedValue = soldData.average ?? null
-
-    const grossYield = (avgRent && property.price)
-      ? Number(((Number(avgRent) * 12) / property.price * 100).toFixed(2))
-      : (yieldsData.gross_yield ?? null)
-
-    const analysis = {
-      avg_monthly_rent: avgRent != null ? Number(avgRent) : null,
-      avg_price_per_sqft: avgSqft != null ? Number(avgSqft) : null,
-      hmo_demand: hmoSignal,
-      growth_1y: growthRate,
-      gross_yield: grossYield != null ? Number(grossYield) : null,
-      estimated_value: estimatedValue != null ? Number(estimatedValue) : null,
-      stamp_duty: stampData.tax ?? stampData.stamp_duty ?? null,
-      rent_valuation: avgRent != null ? Number(avgRent) : null,
-      hmo_room_rent: hmoData.average ?? hmoData.room_rent ?? null,
-      area_yield: yieldsData.gross_yield ?? null,
-    }
-
+    const avgSqft = soldData.average_price_per_sqft ?? null
     const comps = soldData.raw_data ?? soldData.transactions ?? []
 
-    // Area data for PDF brochure
-    const areaData = {
-      demographics: d(demographics),
-      crime: d(crime),
-      schools: d(schools),
-      flood_risk: d(floodRisk),
+    const analysis = {
+      estimated_value: estimatedValue != null ? Number(estimatedValue) : null,
+      avg_price_per_sqft: avgSqft != null ? Number(avgSqft) : null,
     }
+
+    const areaData = {}
 
     // Insert analysis row
     const { data: inserted, error: insertErr } = await admin
@@ -171,7 +120,7 @@ Deno.serve(async (req: Request) => {
       analysis,
       comps,
       area_data: areaData,
-      raw: { soldPrices, rents, yields, growth, demand, demographics, crime, schools, floodRisk, stampDuty, valuationRent, rentsHmo },
+      raw: { soldPrices },
     })
 
   } catch (err) {

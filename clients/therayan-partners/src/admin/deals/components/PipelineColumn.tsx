@@ -1,5 +1,6 @@
 import { useDroppable } from '@dnd-kit/core'
 import { SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable'
+import { Trash2 } from 'lucide-react'
 import type { Property, PropertyStatus } from '../types'
 import { PropertyCard } from './PropertyCard'
 
@@ -8,6 +9,8 @@ interface Props {
   label: string
   properties: Property[]
   onCardClick: (id: string) => void
+  onArchive: (id: string) => void
+  onPurge?: () => void
 }
 
 const STATUS_COLORS: Record<PropertyStatus, string> = {
@@ -19,7 +22,7 @@ const STATUS_COLORS: Record<PropertyStatus, string> = {
   archived:          'bg-slate-400',
 }
 
-export function PipelineColumn({ status, label, properties, onCardClick }: Props) {
+export function PipelineColumn({ status, label, properties, onCardClick, onArchive, onPurge }: Props) {
   const { setNodeRef, isOver } = useDroppable({ id: status })
 
   return (
@@ -36,6 +39,15 @@ export function PipelineColumn({ status, label, properties, onCardClick }: Props
         <span className="ml-auto text-xs text-gray-400 bg-white px-2 py-0.5 rounded-full">
           {properties.length}
         </span>
+        {onPurge && properties.length > 0 && (
+          <button
+            onClick={onPurge}
+            className="text-[10px] font-medium text-red-400 hover:text-red-600 inline-flex items-center gap-0.5 transition-colors"
+            title="Delete all archived properties"
+          >
+            <Trash2 size={10} /> Purge
+          </button>
+        )}
       </div>
 
       {/* Cards */}
@@ -46,6 +58,7 @@ export function PipelineColumn({ status, label, properties, onCardClick }: Props
               key={p.id}
               property={p}
               onClick={() => onCardClick(p.id)}
+              onArchive={() => onArchive(p.id)}
             />
           ))}
         </SortableContext>
